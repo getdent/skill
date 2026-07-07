@@ -1,0 +1,33 @@
+{
+  "name": "dent-cli",
+  "version": "0.1.0",
+  "description": "Dent CLI and AI-agent skill installer for schema-driven Dent API operations.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heyJordanParker/dent-cli.git"
+  },
+  "homepage": "https://github.com/heyJordanParker/dent-cli#readme",
+  "bugs": {
+    "url": "https://github.com/heyJordanParker/dent-cli/issues"
+  },
+  "type": "module",
+  "bin": {
+    "dent": "./cli/bin/dent.js"
+  },
+  "files": [
+    "cli/",
+    "skill/",
+    "scripts/",
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "check": "node cli/bin/dent.js check",
+    "prepack": "node scripts/build.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

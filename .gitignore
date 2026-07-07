@@ -1,0 +1,11 @@
+dist/
+node_modules/
+.DS_Store
+.env
+.env.*
+.dent.local.json
+*.tgz
+.tracer-cache/
+
+# internal build evidence — not part of the published package
+docs/agents/
