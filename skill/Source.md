@@ -31,7 +31,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
      dent login --copy-code
      ```
 
-   - Use `bun dent-skill setup` only when developing against a local Dent repo. It switches the CLI and skill to the local target while preserving the live credential. Use `bun dent-skill reset` to switch back to the live target without re-authenticating either target.
+   - Use `dent setup` only when developing against a local Dent repo. It switches the CLI and skill to the local target while preserving the live credential. Use `dent reset` to switch back to the live target without re-authenticating either target.
 
    - Use `dent logout` when the active target's stored credential should be removed.
 
@@ -72,7 +72,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 2. Fetch the schema catalog first; never guess entity names, fields, actions, or routes.
 
    - Catalog: `GET /api/v1/schema/`.
-   - Local development target switching is owned by `bun dent-skill setup` and `bun dent-skill reset`; do not hardcode local Dent URLs in the skill.
+   - Local development target switching is owned by the CLI's `dent setup` and `dent reset`; do not hardcode local Dent URLs in the skill.
    - Read the target entity's `fields`, `actions`, `parameters`, `mode`, `target`, and `access` before writing. The Funnel Step `status` field is in the catalog; set it through the generic step update route.
    - Action bodies are top-level fields. Do not wrap them in `{attributes: ...}` unless the catalog parameter is literally named `attributes` and the action expects that wrapper from a non-generic endpoint. For Dent generic create/update/actions, send the fields directly.
 

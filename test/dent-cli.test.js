@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -372,6 +372,28 @@ test('setup and reset switch targets while preserving live and local tokens', as
   assertSuccess(await runDent(['whoami'], { configDir, env: { DENT_TARGET: 'local' } }));
   assert.equal(live.schemaRequests.at(-1).token, 'live-token');
   assert.equal(local.schemaRequests.at(-1).token, 'local-token');
+});
+
+test('install writes through a symlinked skill directory instead of replacing the link', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const harness = join(directory, '.claude');
+  const linkTarget = join(directory, 'managed', 'dent');
+  await mkdir(join(harness, 'skills'), { recursive: true });
+  await mkdir(linkTarget, { recursive: true });
+  await writeFile(join(linkTarget, 'SKILL.md'), 'old install');
+  await symlink(linkTarget, join(harness, 'skills', 'dent'));
+
+  const result = await runDent(['install', '--target', harness, '--provider', 'claude-code', '--yes', '--force'], {
+    configDir: join(directory, 'config'),
+  });
+
+  assertSuccess(result);
+  const link = await lstat(join(harness, 'skills', 'dent'));
+  assert.ok(link.isSymbolicLink(), 'skill directory symlink must survive install');
+  const skill = await readFile(join(linkTarget, 'SKILL.md'), 'utf8');
+  assert.match(skill, /name: dent/);
+  assert.doesNotMatch(skill, /old install/);
 });
 
 test('oauth loopback login sends PKCE authorization and exchanges the callback code', async t => {

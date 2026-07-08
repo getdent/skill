@@ -3,7 +3,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, chmodSync, cpSync, renameSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, chmodSync, cpSync, renameSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { dirname, join, resolve, relative } from 'node:path';
 import { emitKeypressEvents } from 'node:readline';
@@ -80,8 +80,8 @@ Examples:
   dent install
   dent login
   dent login --copy-code
-  bun dent-skill setup
-  bun dent-skill reset
+  dent setup
+  dent reset
   echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com --stdin
   dent whoami
   dent schema orders
@@ -1062,11 +1062,15 @@ function readInstalledVersion(skillPath) {
 function copySkill(target, force = false) {
   const source = bundleSkillPath(target);
   if (!existsSync(source)) throw new Error(`No compiled skill bundle for ${target.name}. Run npm run build.`);
-  const destination = installedSkillPath(target);
+  let destination = installedSkillPath(target);
   if (!force && installedState(source, destination).status === 'current') {
     return { status: 'current', destination };
   }
   mkdirSync(dirname(destination), { recursive: true });
+  // Symlink-managed installs (stow, dotfiles) own the link; write into its target so the link survives.
+  if (lstatSync(destination, { throwIfNoEntry: false })?.isSymbolicLink() && existsSync(destination)) {
+    destination = realpathSync(destination);
+  }
   rmSync(destination, { recursive: true, force: true });
   cpSync(source, destination, { recursive: true });
   return { status: 'written', destination };
