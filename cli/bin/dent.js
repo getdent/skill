@@ -1144,7 +1144,11 @@ function check(options) {
     const expectedVersion = readSkillManifest(bundleSkillPath(item))?.version || readPackage().version;
     console.log(`Found ${item.label}: ${item.skillPath} (installed v${item.version || 'unknown'})`);
     if (state.status !== 'current') {
-      console.log(`Update available from ${state.source}: installed v${item.version || 'unknown'}, package v${expectedVersion}. Run \`dent update\`.`);
+      const installedVersion = state.manifest?.version || item.version || 'unknown';
+      const reason = installedVersion === expectedVersion
+        ? `installed contents differ from package v${expectedVersion}`
+        : `installed v${installedVersion}, package v${expectedVersion}`;
+      console.log(`Update available from ${state.source}: ${reason}. Run \`dent update\`.`);
     } else {
       console.log(`Dent skill is up to date by ${state.source} (v${item.version}).`);
     }
