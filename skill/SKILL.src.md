@@ -91,7 +91,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
    ```
    <!-- dent:web:end -->
 
-3. Use the generic route grammar the catalog confirms.
+3. Use the generic route grammar the catalog confirms, and route every Page surface through interview, writing, then design.
 
    - `GET /api/v1/{entities}` lists records.
    - `GET /api/v1/{entities}/{id}` reads one record.
@@ -109,57 +109,31 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
      - `POST /api/v1/sections/{sectionId}/lessons`
      - `GET /api/v1/sections/{sectionId}/lessons`
      - `GET /api/v1/sections/{sectionId}/lessons/{lessonId}`
-   - Pages look like wireframes → read `references/designing-beautiful-pages.md` before authoring any Design. Build the Design from that Process and adapt the starters; never ship a bare section + heading.
+   - For any Page, Article, Funnel Step, Checkout Funnel Step, Upsell Funnel Step, or redesign, use this exact order:
+     1. FIRST establish the brief by interviewing the operator in plain language → `references/interview.md`.
+     2. THEN write the finished copy → `references/writing/copywriting.md` plus the matching writing leaf.
+     3. THEN design from the brief and finished copy → `references/design/designing.md` plus the matching design leaf.
+   - Match the leaf to the surface:
+     - Opt-in Page or lead-capture Funnel Step → `references/writing/optin-page.md` and `references/design/optin-page.md`.
+     - Sales Page or sales Funnel Step → `references/writing/sales-page.md` and `references/design/sales-page.md`.
+     - Checkout Funnel Step → `references/writing/sales-page.md` and the Checkout starter inside `references/design/sales-page.md`.
+     - Upsell Funnel Step → `references/writing/upsell-page.md` and `references/design/upsell-page.md`.
+     - Thank-you Page or Funnel Step → `references/writing/thank-you-page.md` and `references/design/thank-you-page.md`.
+     - Article or content Page → `references/writing/article.md` and `references/design/article.md`.
+   - Do not duplicate the reference content inline. Use the references to produce the brief, copy, and Designer JSON, then send the resulting Design through the API owner.
 
 4. Build an opt-in Funnel with a thank-you Funnel Step.
 
+   - Start with the page creation sequence for both public steps:
+     - Opt-in Funnel Step → interview brief, opt-in copy, opt-in Design.
+     - Thank-you Funnel Step → interview brief, thank-you copy, thank-you Design.
    - Create the Funnel: `POST /api/v1/funnels` with `{ "name": "Lead magnet opt-in" }`.
    - Use `homeStepId` from the response as the opt-in Funnel Step.
    - Create the thank-you Funnel Step: `POST /api/v1/funnels/{funnelId}/steps` with `{ "title": "Thank You" }`.
-   - Build the opt-in and thank-you Designs following `references/designing-beautiful-pages.md`, then author them through the Funnel Steps, not WordPress. Every `{{ fields.* }}` value used by a behavior must have a matching input whose `config.name` is that field. The JSON below shows required behavior/field binding shape; do not ship it as the final visual design.
-
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "elements": [{
-           "key": "optin-section",
-           "type": "section",
-           "children": [{
-             "key": "optin-form",
-             "type": "form",
-             "behaviors": [{"behavior": "optin", "event": "submit", "config": {"email": "{{ fields.email }}", "name": "{{ fields.name }}", "nameMode": "full"}}],
-             "children": [
-               {"key": "optin-email", "type": "text-input", "config": {"name": "email", "kind": "email", "label": "Email", "required": true}, "children": []},
-               {"key": "optin-name", "type": "text-input", "config": {"name": "name", "kind": "text", "label": "Name"}, "children": []},
-               {"key": "optin-submit", "type": "form-submit", "config": {"label": "Subscribe"}, "children": []}
-             ]
-           }]
-         }]
-       }
-     }
-     ```
-
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design`.
-   - Put a polished thank-you Design on the thank-you Funnel Step so the public URL is not empty. Use the thank-you anatomy in `references/designing-beautiful-pages.md`; never ship only a bare section + heading:
-
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "elements": [{
-           "key": "thanks-section",
-           "type": "section",
-           "children": [
-             {"key": "thanks-heading", "type": "heading", "text": "You're in", "children": []},
-             {"key": "thanks-text", "type": "text", "text": "Check your inbox for the next step.", "children": []}
-           ]
-         }]
-       }
-     }
-     ```
-
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{thankYouStepId}/replace-design`.
+   - Author the opt-in Design through the Funnel Step, not WordPress. Every `{{ fields.* }}` value used by a behavior must have a matching input whose `config.name` is that field.
+   - Send the opt-in Design to `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design`.
+   - Put a polished thank-you Design on the thank-you Funnel Step so the public URL is not empty.
+   - Send the thank-you Design to `POST /api/v1/funnels/{funnelId}/steps/{thankYouStepId}/replace-design`.
    - Publish every public Funnel Step before opening `viewUrl` or submitting the form:
 
      ```json
@@ -176,6 +150,10 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
 5. Build a sales Funnel with Order bump, upsell, and thank-you Funnel Step.
 
+   - Start with the page creation sequence for each public step:
+     - Sales or Checkout Funnel Step → interview brief, sales/Checkout copy, sales or Checkout Design.
+     - Upsell Funnel Step → interview brief, upsell copy, upsell Design.
+     - Thank-you Funnel Step → interview brief, thank-you copy, thank-you Design.
    - Create each Product: `POST /api/v1/products` with top-level fields such as `{ "name": "Core Course", "value": 97, "status": "publish" }`.
    - Create each Offer: `POST /api/v1/offers` with `{ "name": "Core Offer", "price": 97, "active": true, "products": [{"productId": productId}] }`.
    - Create the Funnel and Funnel Steps:
@@ -191,63 +169,22 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
      Send it to `POST /api/v1/funnels/{funnelId}/steps/{checkoutStepId}`.
    - Attach the upsell Offer to the Upsell Funnel Step with `POST /api/v1/funnels/{funnelId}/steps/{upsellStepId}` and `{ "offers": [{"offerId": upsellOfferId}] }`.
-   - Build the sales, Checkout, Upsell, and Thank You Designs following `references/designing-beautiful-pages.md`; use the proven starters there and adapt the copy. The JSON below shows the minimum Checkout control set that must remain inside a designed Checkout layout:
-
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "elements": [{
-           "key": "checkout-section",
-           "type": "section",
-           "children": [{
-             "key": "checkout-form",
-             "type": "checkout",
-             "behaviors": [{"behavior": "checkout", "event": "submit", "config": {"billing": "{{ checkout.billing }}", "gateway": "{{ checkout.payment.gateway }}"}}],
-             "children": [
-               {"key": "checkout-email", "type": "text-input", "config": {"binding": "billing.email", "kind": "email", "required": true}, "children": []},
-               {"key": "checkout-first-name", "type": "text-input", "config": {"binding": "billing.first_name", "kind": "text"}, "children": []},
-               {"key": "checkout-last-name", "type": "text-input", "config": {"binding": "billing.last_name", "kind": "text"}, "children": []},
-               {"key": "checkout-payment", "type": "checkout-payment", "config": {"gateways": ["dent_test"]}, "children": []},
-               {"key": "checkout-submit", "type": "checkout-submit", "config": {"text": "Complete purchase"}, "children": []}
-             ]
-           }]
-         }]
-       }
-     }
-     ```
-
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{checkoutStepId}/replace-design`.
-   - Replace the Upsell Design with a polished upsell layout from `references/designing-beautiful-pages.md`, including a `checkout-offer` element and an accept Link:
-
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "elements": [{
-           "key": "upsell-section",
-           "type": "section",
-           "children": [
-             {"key": "upsell-offer", "type": "checkout-offer", "config": {}, "children": []},
-             {"key": "upsell-accept", "type": "button", "tag": "a", "attributes": {"href": "{{ offer.acceptUrl }}"}, "text": "Yes, add this", "children": []}
-           ]
-         }]
-       }
-     }
-     ```
-
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{upsellStepId}/replace-design`.
+   - Send each finished Design to its owner:
+     - Checkout Design → `POST /api/v1/funnels/{funnelId}/steps/{checkoutStepId}/replace-design`.
+     - Upsell Design → `POST /api/v1/funnels/{funnelId}/steps/{upsellStepId}/replace-design`.
+     - Thank-you Design → `POST /api/v1/funnels/{funnelId}/steps/{thankYouStepId}/replace-design`.
    - Publish every public Funnel Step before opening `viewUrl` or submitting Checkout:
 
      ```json
      {"status": "published"}
      ```
 
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}` for the landing, Checkout, Upsell, and Thank You Funnel Steps. Public URLs, form submits, and Checkout require a published Funnel Step on an active Funnel.
+     Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}` for the Checkout, Upsell, and Thank You Funnel Steps. Public URLs, form submits, and Checkout require a published Funnel Step on an active Funnel.
    - Start Checkout like a real Visitor: `GET` the Checkout Funnel Step `viewUrl` first and keep the response cookies. That pageview creates the Funnel Session/Journey/Cart context. Send later `POST /api/v1/funnel/cart` mutations and Checkout submit calls with those same cookies; without the step pageview they return `401 No active funnel session`.
 
 6. Build a Dent-selling Funnel that provisions a Tenant.
 
+   - Start with the page creation sequence for the Dent-selling Checkout, Upsell, and Thank You Funnel Steps so the Funnel presents the Offer like a polished sales surface, not a wireframe.
    - Create a Webhook Endpoint for Platform provisioning. `customHeaders` is write-only; use it to send the Platform bearer token:
 
      ```json
@@ -285,41 +222,30 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
      ```
 
      Send it to `POST /api/v1/products`.
-   - Create the Offer for that Product, then build Checkout, Upsell, and Thank You Funnel Steps exactly as in step 5. Build those Designs following `references/designing-beautiful-pages.md` so the Dent-selling funnel presents the Offer like a polished sales surface, not a wireframe.
+   - Create the Offer for that Product, then build Checkout, Upsell, and Thank You Funnel Steps exactly as in step 5.
    - Publish every public Funnel Step exactly as in step 5 before opening `viewUrl`, changing the Cart, or submitting Checkout.
    - Before Cart or Checkout API calls, `GET` the Checkout Funnel Step `viewUrl` with a cookie jar and reuse those cookies for `POST /api/v1/funnel/cart` and Checkout submit calls.
    - A TestGateway purchase of the Offer creates the Order, runs Product delivery, posts `product.delivery` to Platform provisioning, records a delivered Webhook Delivery with `responseCode: 200`, and creates a Tenant with `plan: "pro"`, `status: "active"`, and `setupStatus: "ready"`.
 
 7. Create Articles and Pages as Designables.
 
+   - Start with the page creation sequence before writing the `design` field or calling `replace-design`:
+     - Article or content Page → interview brief, Article/content copy, Article/content Design.
+     - Opt-in Page → interview brief, opt-in copy, opt-in Design.
+     - Sales Page → interview brief, sales copy, sales Design.
+     - Thank-you Page → interview brief, thank-you copy, thank-you Design.
    - Article: `POST /api/v1/articles` with top-level `{ "title", "status", "excerpt", "slug", "design" }`. Dent renders the Article content from the Design.
    - Page: `POST /api/v1/pages` with `{ "title", "status", "slug" }`, then `POST /api/v1/pages/{pageId}/replace-design` with `{ "design": {"version": 1, "elements": [...] } }`.
-   - Build Page and Article Designs following `references/designing-beautiful-pages.md`. Never ship a bare section + heading; at minimum use a designed header, readable content column, and one contextual CTA.
-   - Shape example for a thank-you Page, content Page, or Article; add the reference's rhythm, classes, proof, and CTA before publishing:
-
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "elements": [{
-           "key": "content-section",
-           "type": "section",
-           "children": [
-             {"key": "content-heading", "type": "heading", "text": "Page heading", "children": []},
-             {"key": "content-text", "type": "text", "text": "Short page copy.", "children": []}
-           ]
-         }]
-       }
-     }
-     ```
-
    - Read the saved Design with `GET /api/v1/pages/{pageId}/design` or `GET /api/v1/articles/{articleId}`.
    - A Funnel Step is not a Page. Never call a Funnel Step a Page.
 
 8. Iterate on Funnel Step Design until the operator approves.
 
    - Read the current Design: `GET /api/v1/funnels/{funnelId}/steps/{stepId}/design`.
-   - Replace it: `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design` with `{ "design": ... }`. When improving visual quality, use `references/designing-beautiful-pages.md` to fix page anatomy, section rhythm, typography, CTA contrast, trust signals, and mobile stacking.
+   - Re-establish or update the brief by interviewing the operator in plain language about what the current Step must do differently.
+   - Rewrite or confirm the finished copy through `references/writing/copywriting.md` and the matching writing leaf before changing layout.
+   - Redesign from the updated brief and finished copy through `references/design/designing.md` and the matching design leaf.
+   - Replace it: `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design` with `{ "design": ... }`.
    - If the operator will inspect the public `viewUrl`, publish the Funnel Step first with `POST /api/v1/funnels/{funnelId}/steps/{stepId}` and `{ "status": "published" }`.
    - Read the Funnel Step: `GET /api/v1/funnels/{funnelId}/steps/{stepId}`.
    - Open or refresh `viewUrl`, inspect the rendered Site result, then repeat. If a render needs WordPress-only admin routes, stop and report the gap instead of using them.
@@ -387,4 +313,17 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 ## References (each solves one problem)
 
 - The installed Dent skill is stale → updating-the-skill.md
-- Pages look like wireframes → designing-beautiful-pages.md
+- Checking Dent API route grammar and auth details → api.md
+- Establishing the Page, Article, or Funnel Step brief in operator language → interview.md
+- Writing Page, Article, and Funnel Step copy before design → writing/copywriting.md
+- Writing opt-in Page or lead-capture Funnel Step copy → writing/optin-page.md
+- Writing sales Page, sales Funnel Step, or Checkout copy → writing/sales-page.md
+- Writing one-click upsell Funnel Step copy → writing/upsell-page.md
+- Writing thank-you Page or confirmation Funnel Step copy → writing/thank-you-page.md
+- Writing Article or content Page copy → writing/article.md
+- Designing Page, Article, and Funnel Step visuals after copy → design/designing.md
+- Designing opt-in Page or lead-capture Funnel Step visuals → design/optin-page.md
+- Designing sales Page, sales Funnel Step, or Checkout visuals → design/sales-page.md
+- Designing one-click upsell Funnel Step visuals → design/upsell-page.md
+- Designing thank-you Page or confirmation Funnel Step visuals → design/thank-you-page.md
+- Designing Article or content Page visuals → design/article.md
