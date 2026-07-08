@@ -71,19 +71,12 @@ Use this after `interview.md` has produced the shared brief. The failure it prev
    - Writing a homepage Page → `writing/homepage.md`
    - Writing a pricing Page → `writing/pricing.md`
 
-6. Run the anti-slop editing gate.
+6. Route drafted copy through the final editing pass.
 
-   - Cut AI-tell phrases, generic SaaS words, filler intensifiers, and empty superlatives.
-   - Keep at most one deliberate em dash per screen of output copy.
-   - Remove template structures such as "whether you're X, Y, or Z" and lazy additive "not just X" lines.
-   - Replace pompous words with plain words when meaning survives.
-   - Check every sentence for clarity, active verbs, word economy, positive form, and related words staying together.
-   - Check strategy: one job, one ask, customer outcome before mechanism, specific claims, proof beside doubt, and emotion where stakes are real.
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`
 
    ### Distinctiveness must survive cleanup
    A clean line that any competitor could paste onto their own Page still fails. Rewrite it around the brief's specific customer, proof, mechanism, or Offer.
-
-7. Hand finished copy to design.
 
    - Output copy by section: headline, subheadline, CTA, body copy, bullets, proof, FAQ, form labels, and microcopy.
    - Mark any proof gap inline so design does not turn it into a visual claim.

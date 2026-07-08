@@ -44,31 +44,31 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "optin-hero",
            "type": "section",
-           "classes": ["w-full", "bg-primary", "px-4", "py-12", "font-sans", "text-primary-foreground", "antialiased", "md:py-20"],
+           "classes": ["w-full", "bg-primary", "px-4", "py-12", "font-sans", "text-primary-foreground", "antialiased", "sm:px-6", "md:py-20", "lg:px-8", "lg:py-28"],
            "children": [
              {
                "key": "optin-hero-wrap",
                "type": "container",
-               "classes": ["mx-auto", "grid", "max-w-6xl", "items-center", "gap-10", "md:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]"],
+               "classes": ["mx-auto", "grid", "max-w-7xl", "items-center", "gap-10", "md:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]", "lg:gap-16"],
                "children": [
                  {
                    "key": "optin-copy",
                    "type": "container",
-                   "classes": ["flex", "max-w-2xl", "flex-col", "gap-6"],
+                   "classes": ["flex", "max-w-3xl", "flex-col", "gap-6", "lg:gap-8"],
                    "children": [
-                     {"key": "optin-kicker", "type": "text", "tag": "p", "text": "Free operator checklist", "classes": ["text-sm", "font-bold", "text-primary-foreground"], "children": []},
-                     {"key": "optin-headline", "type": "heading", "tag": "h1", "text": "Know the next Funnel Step to build before you spend another weekend guessing", "classes": ["text-4xl", "font-black", "leading-tight", "tracking-tight", "text-primary-foreground", "md:text-6xl"], "children": []},
-                     {"key": "optin-subhead", "type": "text", "tag": "p", "text": "Get the practical launch map for turning a lead magnet, Checkout, and follow-up sequence into a revenue path you can measure.", "classes": ["max-w-[65ch]", "text-lg", "leading-relaxed", "text-primary-foreground", "md:text-xl"], "children": []},
-                     {"key": "optin-trust-line", "type": "text", "tag": "p", "text": "Built from three shipped funnels and written for solo course operators.", "classes": ["max-w-[65ch]", "rounded-2xl", "bg-background", "p-4", "text-base", "font-semibold", "leading-relaxed", "text-foreground"], "children": []}
+                     {"key": "optin-kicker", "type": "text", "tag": "p", "text": "Free operator checklist", "classes": ["text-sm", "font-bold", "text-primary-foreground", "md:text-base"], "children": []},
+                     {"key": "optin-headline", "type": "heading", "tag": "h1", "text": "Know the next Funnel Step to build before you spend another weekend guessing", "classes": ["text-4xl", "font-black", "leading-none", "tracking-tight", "text-primary-foreground", "md:text-6xl", "lg:text-7xl"], "children": []},
+                     {"key": "optin-subhead", "type": "text", "tag": "p", "text": "Get the practical launch map for turning a lead magnet, Checkout, and follow-up sequence into a revenue path you can measure.", "classes": ["max-w-[65ch]", "text-lg", "leading-relaxed", "text-primary-foreground", "md:text-xl", "lg:text-2xl"], "children": []},
+                     {"key": "optin-trust-line", "type": "text", "tag": "p", "text": "Built from three shipped funnels and written for solo course operators.", "classes": ["max-w-[65ch]", "rounded-2xl", "bg-background", "p-4", "text-base", "font-semibold", "leading-relaxed", "text-foreground", "md:text-lg"], "children": []}
                    ]
                  },
                  {
                    "key": "optin-form-panel",
                    "type": "container",
-                   "classes": ["rounded-2xl", "bg-card", "p-5", "shadow-elevated", "md:p-6"],
+                   "classes": ["rounded-2xl", "bg-card", "p-5", "shadow-elevated", "md:p-8"],
                    "children": [
-                     {"key": "optin-form-title", "type": "heading", "tag": "h2", "text": "Send me the launch map", "classes": ["text-2xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
-                     {"key": "optin-form-copy", "type": "text", "tag": "p", "text": "The checklist arrives by email, followed by one implementation lesson.", "classes": ["mt-2", "text-base", "leading-relaxed", "text-foreground"], "children": []},
+                     {"key": "optin-form-title", "type": "heading", "tag": "h2", "text": "Send me the launch map", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-4xl"], "children": []},
+                     {"key": "optin-form-copy", "type": "text", "tag": "p", "text": "The checklist arrives by email, followed by one implementation lesson.", "classes": ["mt-3", "text-base", "leading-relaxed", "text-foreground", "md:text-lg"], "children": []},
                      {
                        "key": "optin-form",
                        "type": "form",
@@ -93,22 +93,22 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "optin-preview",
            "type": "section",
-           "classes": ["bg-background", "px-4", "py-10", "font-sans", "text-foreground", "md:py-14"],
+           "classes": ["bg-background", "px-4", "py-12", "font-sans", "text-foreground", "sm:px-6", "md:py-20", "lg:px-8"],
            "children": [
              {
                "key": "optin-preview-wrap",
                "type": "container",
-               "classes": ["mx-auto", "grid", "max-w-6xl", "gap-8", "items-start", "md:grid-cols-[0.82fr_1.18fr]"],
+               "classes": ["mx-auto", "grid", "max-w-7xl", "gap-10", "items-start", "md:grid-cols-[0.82fr_1.18fr]", "lg:gap-16"],
                "children": [
-                 {"key": "optin-preview-heading", "type": "heading", "tag": "h2", "text": "What the checklist clarifies", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-5xl"], "children": []},
+                 {"key": "optin-preview-heading", "type": "heading", "tag": "h2", "text": "What the checklist clarifies", "classes": ["text-4xl", "font-black", "tracking-tight", "text-foreground", "md:text-5xl", "lg:text-6xl"], "children": []},
                  {
                    "key": "optin-preview-list",
                    "type": "container",
-                   "classes": ["grid", "gap-3", "text-base", "leading-relaxed", "text-foreground", "md:text-lg"],
+                   "classes": ["grid", "gap-4", "text-base", "leading-relaxed", "text-foreground", "md:text-xl"],
                    "children": [
-                     {"key": "optin-preview-1", "type": "text", "tag": "p", "text": "Which promise belongs on the opt-in step, not buried in follow-up copy.", "classes": ["rounded-xl", "bg-muted", "p-4", "font-semibold"], "children": []},
-                     {"key": "optin-preview-2", "type": "text", "tag": "p", "text": "Where Checkout, the Offer, and the thank-you step need to connect.", "classes": ["rounded-xl", "bg-muted", "p-4", "font-semibold"], "children": []},
-                     {"key": "optin-preview-3", "type": "text", "tag": "p", "text": "Which revenue signals to watch once the Funnel is live.", "classes": ["rounded-xl", "bg-muted", "p-4", "font-semibold"], "children": []}
+                     {"key": "optin-preview-1", "type": "text", "tag": "p", "text": "Which promise belongs on the opt-in step, not buried in follow-up copy.", "classes": ["rounded-xl", "bg-muted", "p-5", "font-semibold"], "children": []},
+                     {"key": "optin-preview-2", "type": "text", "tag": "p", "text": "Where Checkout, the Offer, and the thank-you step need to connect.", "classes": ["rounded-xl", "bg-muted", "p-5", "font-semibold"], "children": []},
+                     {"key": "optin-preview-3", "type": "text", "tag": "p", "text": "Which revenue signals to watch once the Funnel is live.", "classes": ["rounded-xl", "bg-muted", "p-5", "font-semibold"], "children": []}
                    ]
                  }
                ]

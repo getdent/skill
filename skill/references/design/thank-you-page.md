@@ -43,31 +43,31 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "thanks-hero",
            "type": "section",
-           "classes": ["bg-background", "px-4", "py-16", "md:py-24", "font-sans", "text-foreground", "antialiased"],
+           "classes": ["bg-background", "px-4", "py-16", "font-sans", "text-foreground", "antialiased", "sm:px-6", "md:py-24", "lg:px-8", "lg:py-28"],
            "children": [
              {
                "key": "thanks-wrap",
                "type": "container",
-               "classes": ["mx-auto", "grid", "max-w-5xl", "gap-8", "md:grid-cols-[1fr_0.85fr]", "items-start"],
+               "classes": ["mx-auto", "grid", "max-w-7xl", "gap-10", "md:grid-cols-[1fr_0.85fr]", "items-start", "lg:gap-16"],
                "children": [
                  {
                    "key": "thanks-copy",
                    "type": "container",
-                   "classes": ["flex", "max-w-[65ch]", "flex-col", "gap-6"],
+                   "classes": ["flex", "max-w-[65ch]", "flex-col", "gap-6", "lg:gap-8"],
                    "children": [
-                     {"key": "thanks-confirm", "type": "text", "tag": "p", "text": "You are in.", "classes": ["text-base", "font-bold", "text-primary"], "children": []},
-                     {"key": "thanks-heading", "type": "heading", "tag": "h1", "text": "Check your inbox for the launch map", "classes": ["text-4xl", "font-black", "leading-tight", "tracking-tight", "text-foreground", "md:text-6xl"], "children": []},
-                     {"key": "thanks-subhead", "type": "text", "tag": "p", "text": "The checklist is on its way. The first implementation lesson follows so you can choose the next Funnel Step with confidence.", "classes": ["text-lg", "leading-relaxed", "text-foreground", "md:text-xl"], "children": []},
-                     {"key": "thanks-cta", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "Back to the Site", "classes": ["inline-flex", "h-14", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-8", "font-bold", "text-primary-foreground", "shadow-elevated", "md:w-fit"], "children": []}
+                     {"key": "thanks-confirm", "type": "text", "tag": "p", "text": "You are in.", "classes": ["text-base", "font-bold", "text-primary", "md:text-lg"], "children": []},
+                     {"key": "thanks-heading", "type": "heading", "tag": "h1", "text": "Check your inbox for the launch map", "classes": ["text-4xl", "font-black", "leading-none", "tracking-tight", "text-foreground", "md:text-6xl", "lg:text-7xl"], "children": []},
+                     {"key": "thanks-subhead", "type": "text", "tag": "p", "text": "The checklist is on its way. The first implementation lesson follows so you can choose the next Funnel Step with confidence.", "classes": ["text-lg", "leading-relaxed", "text-foreground", "md:text-xl", "lg:text-2xl"], "children": []},
+                     {"key": "thanks-cta", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "Back to the Site", "classes": ["inline-flex", "h-14", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-8", "text-base", "font-bold", "text-primary-foreground", "shadow-elevated", "md:h-16", "md:w-fit", "md:text-lg"], "children": []}
                    ]
                  },
                  {
                    "key": "thanks-next-panel",
                    "type": "container",
-                   "classes": ["rounded-2xl", "bg-muted", "p-6", "md:p-8"],
+                   "classes": ["rounded-2xl", "bg-muted", "p-6", "md:p-8", "lg:p-10"],
                    "children": [
-                     {"key": "next-heading", "type": "heading", "tag": "h2", "text": "What happens next", "classes": ["text-2xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
-                     {"key": "next-list", "type": "list", "classes": ["mt-6", "grid", "gap-4", "text-base", "leading-relaxed", "text-foreground"], "children": [
+                     {"key": "next-heading", "type": "heading", "tag": "h2", "text": "What happens next", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-4xl"], "children": []},
+                     {"key": "next-list", "type": "list", "classes": ["mt-6", "grid", "gap-4", "text-base", "leading-relaxed", "text-foreground", "md:text-lg"], "children": [
                        {"key": "next-1", "type": "list-item", "text": "Open the email and save the checklist where you plan launches.", "classes": ["rounded-xl", "bg-card", "p-4"], "children": []},
                        {"key": "next-2", "type": "list-item", "text": "Use the first page to identify the one Funnel Step with the most leverage.", "classes": ["rounded-xl", "bg-card", "p-4"], "children": []},
                        {"key": "next-3", "type": "list-item", "text": "Reply if the email does not arrive within a few minutes.", "classes": ["rounded-xl", "bg-card", "p-4"], "children": []}
@@ -81,13 +81,13 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "thanks-bridge",
            "type": "section",
-           "classes": ["bg-muted", "px-4", "py-16", "md:py-24", "font-sans", "text-foreground"],
+           "classes": ["bg-muted", "px-4", "py-16", "font-sans", "text-foreground", "sm:px-6", "md:py-24", "lg:px-8", "lg:py-28"],
            "children": [
-             {"key": "bridge-wrap", "type": "container", "classes": ["mx-auto", "grid", "max-w-5xl", "gap-6", "md:grid-cols-[0.9fr_1.1fr]", "items-center"], "children": [
-               {"key": "bridge-heading", "type": "heading", "tag": "h2", "text": "Want the full build order?", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-5xl"], "children": []},
+             {"key": "bridge-wrap", "type": "container", "classes": ["mx-auto", "grid", "max-w-7xl", "gap-10", "md:grid-cols-[0.9fr_1.1fr]", "items-center", "lg:gap-16"], "children": [
+               {"key": "bridge-heading", "type": "heading", "tag": "h2", "text": "Want the full build order?", "classes": ["text-4xl", "font-black", "tracking-tight", "text-foreground", "md:text-5xl", "lg:text-6xl"], "children": []},
                {"key": "bridge-copy", "type": "container", "classes": ["flex", "max-w-[65ch]", "flex-col", "gap-5"], "children": [
-                 {"key": "bridge-text", "type": "text", "tag": "p", "text": "If you are ready to build beyond the checklist, continue into the Course Launch OS and assemble the whole sales path.", "classes": ["text-lg", "leading-relaxed", "text-foreground"], "children": []},
-                 {"key": "bridge-link", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "See the course", "classes": ["inline-flex", "h-12", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-6", "font-bold", "text-primary-foreground", "shadow-elevated", "md:w-fit"], "children": []}
+                 {"key": "bridge-text", "type": "text", "tag": "p", "text": "If you are ready to build beyond the checklist, continue into the Course Launch OS and assemble the whole sales path.", "classes": ["text-lg", "leading-relaxed", "text-foreground", "md:text-xl"], "children": []},
+                 {"key": "bridge-link", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "See the course", "classes": ["inline-flex", "h-14", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-8", "text-base", "font-bold", "text-primary-foreground", "shadow-elevated", "md:h-16", "md:w-fit", "md:text-lg"], "children": []}
                ]}
              ]}
            ]

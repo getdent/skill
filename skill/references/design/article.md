@@ -42,17 +42,17 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "article-header",
            "type": "section",
-           "classes": ["bg-muted", "px-4", "py-16", "md:py-24", "font-sans", "text-foreground", "antialiased"],
+           "classes": ["bg-muted", "px-4", "py-16", "font-sans", "text-foreground", "antialiased", "sm:px-6", "md:py-24", "lg:px-8", "lg:py-28"],
            "children": [
              {
                "key": "article-header-wrap",
                "type": "container",
-               "classes": ["mx-auto", "grid", "max-w-6xl", "gap-8", "md:grid-cols-[0.85fr_1.15fr]", "items-end"],
+               "classes": ["mx-auto", "grid", "max-w-7xl", "gap-10", "md:grid-cols-[0.75fr_1.25fr]", "items-end", "lg:gap-16"],
                "children": [
-                 {"key": "article-meta", "type": "text", "tag": "p", "text": "Field note for course operators", "classes": ["text-sm", "font-bold", "text-primary"], "children": []},
-                 {"key": "article-title-block", "type": "container", "classes": ["flex", "max-w-[65ch]", "flex-col", "gap-5"], "children": [
-                   {"key": "article-title", "type": "heading", "tag": "h1", "text": "The Funnel Step to build when your course launch feels random", "classes": ["text-4xl", "font-black", "leading-tight", "tracking-tight", "text-foreground", "md:text-6xl"], "children": []},
-                   {"key": "article-summary", "type": "text", "tag": "p", "text": "A practical way to choose the next sales surface by buyer commitment, not by what everyone else seems to be publishing.", "classes": ["text-lg", "leading-relaxed", "text-foreground", "md:text-xl"], "children": []}
+                 {"key": "article-meta", "type": "text", "tag": "p", "text": "Field note for course operators", "classes": ["text-sm", "font-bold", "text-primary", "md:text-base"], "children": []},
+                 {"key": "article-title-block", "type": "container", "classes": ["flex", "max-w-[65ch]", "flex-col", "gap-6"], "children": [
+                   {"key": "article-title", "type": "heading", "tag": "h1", "text": "The Funnel Step to build when your course launch feels random", "classes": ["text-4xl", "font-black", "leading-none", "tracking-tight", "text-foreground", "md:text-6xl", "lg:text-7xl"], "children": []},
+                   {"key": "article-summary", "type": "text", "tag": "p", "text": "A practical way to choose the next sales surface by buyer commitment, not by what everyone else seems to be publishing.", "classes": ["text-lg", "leading-relaxed", "text-foreground", "md:text-xl", "lg:text-2xl"], "children": []}
                  ]}
                ]
              }
@@ -61,25 +61,25 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "article-body",
            "type": "section",
-           "classes": ["bg-background", "px-4", "py-16", "md:py-24", "font-sans", "text-foreground"],
+           "classes": ["bg-background", "px-4", "py-16", "font-sans", "text-foreground", "sm:px-6", "md:py-24", "lg:px-8"],
            "children": [
-             {"key": "article-body-wrap", "type": "container", "classes": ["mx-auto", "grid", "max-w-6xl", "gap-10", "md:grid-cols-[minmax(0,65ch)_minmax(260px,0.45fr)]", "items-start"], "children": [
-               {"key": "article-content", "type": "container", "classes": ["prose", "max-w-[65ch]", "text-foreground"], "children": [
+             {"key": "article-body-wrap", "type": "container", "classes": ["mx-auto", "grid", "max-w-7xl", "gap-10", "md:grid-cols-[minmax(0,65ch)_minmax(280px,0.5fr)]", "items-start", "lg:gap-16"], "children": [
+               {"key": "article-content", "type": "container", "classes": ["prose", "max-w-[65ch]", "text-lg", "leading-relaxed", "text-foreground", "md:text-xl"], "children": [
                  {"key": "article-p1", "type": "text", "tag": "p", "text": "A random launch usually starts with a reasonable question: should you write more emails, improve the sales Page, add a webinar, or rebuild Checkout? The options all sound productive, which is why they are hard to prioritize.", "children": []},
-                 {"key": "article-h2-1", "type": "heading", "tag": "h2", "text": "Start where the buyer gets stuck", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
+                 {"key": "article-h2-1", "type": "heading", "tag": "h2", "text": "Start where the buyer gets stuck", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-4xl"], "children": []},
                  {"key": "article-p2", "type": "text", "tag": "p", "text": "If people understand the promise but do not buy, the problem is probably the Offer or Checkout. If they do not understand why the course matters, the sales Page needs clearer proof before you touch payment.", "children": []},
-                 {"key": "article-quote", "type": "quote", "text": "Build the next Funnel Step at the exact point where buyer commitment drops.", "classes": ["rounded-2xl", "bg-muted", "p-6", "text-xl", "font-bold", "leading-snug", "tracking-tight", "text-foreground"], "children": []},
-                 {"key": "article-h2-2", "type": "heading", "tag": "h2", "text": "Use one diagnostic before adding a new asset", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
+                 {"key": "article-quote", "type": "quote", "text": "Build the next Funnel Step at the exact point where buyer commitment drops.", "classes": ["rounded-2xl", "bg-muted", "p-6", "text-xl", "font-bold", "leading-snug", "tracking-tight", "text-foreground", "md:text-2xl"], "children": []},
+                 {"key": "article-h2-2", "type": "heading", "tag": "h2", "text": "Use one diagnostic before adding a new asset", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-4xl"], "children": []},
                  {"key": "article-list", "type": "list", "classes": ["grid", "gap-3"], "children": [
                    {"key": "article-li-1", "type": "list-item", "text": "No opt-ins: sharpen the promise and lead magnet.", "children": []},
                    {"key": "article-li-2", "type": "list-item", "text": "No Checkout starts: improve proof and Offer clarity.", "children": []},
                    {"key": "article-li-3", "type": "list-item", "text": "Checkout starts but no Orders: remove payment uncertainty.", "children": []}
                  ]}
                ]},
-               {"key": "article-cta", "type": "container", "classes": ["rounded-2xl", "bg-card", "p-6", "shadow-elevated", "md:sticky", "md:top-6"], "children": [
-                 {"key": "article-cta-heading", "type": "heading", "tag": "h2", "text": "Choose your next step", "classes": ["text-2xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
-                 {"key": "article-cta-copy", "type": "text", "tag": "p", "text": "Get the launch map and identify which Funnel Step has the most leverage right now.", "classes": ["mt-3", "text-base", "leading-relaxed", "text-foreground"], "children": []},
-                 {"key": "article-cta-button", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "Get the launch map", "classes": ["mt-6", "inline-flex", "h-12", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-6", "font-bold", "text-primary-foreground", "shadow-elevated"], "children": []}
+               {"key": "article-cta", "type": "container", "classes": ["rounded-2xl", "bg-card", "p-6", "shadow-elevated", "md:sticky", "md:top-6", "lg:p-8"], "children": [
+                 {"key": "article-cta-heading", "type": "heading", "tag": "h2", "text": "Choose your next step", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
+                 {"key": "article-cta-copy", "type": "text", "tag": "p", "text": "Get the launch map and identify which Funnel Step has the most leverage right now.", "classes": ["mt-3", "text-base", "leading-relaxed", "text-foreground", "md:text-lg"], "children": []},
+                 {"key": "article-cta-button", "type": "button", "tag": "a", "attributes": {"href": "/"}, "text": "Get the launch map", "classes": ["mt-6", "inline-flex", "h-14", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-6", "text-base", "font-bold", "text-primary-foreground", "shadow-elevated", "md:text-lg"], "children": []}
                ]}
              ]}
            ]

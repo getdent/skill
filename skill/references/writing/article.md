@@ -68,3 +68,7 @@ Use this after `copywriting.md` has separated the Article's reader promise from 
    The CTA should feel like the next helpful step, not an ad bolted to the bottom.
    Example: "Get the Funnel Step checklist".
    Never: "Buy the Offer now" after an early-stage educational Article with no buying argument.
+
+6. Route drafted copy through the final editing pass.
+
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`

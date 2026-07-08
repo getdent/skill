@@ -65,3 +65,7 @@ Use this after `copywriting.md` has locked the shared promise and argument from 
    The CTA should say what the Contact gets.
    Example: "Send me the teardown".
    Never: "Submit".
+
+6. Route drafted copy through the final editing pass.
+
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`

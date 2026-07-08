@@ -46,39 +46,39 @@ Use this after `interview.md`, `writing/copywriting.md`, and `designing.md`. Thi
          {
            "key": "upsell-page",
            "type": "section",
-           "classes": ["bg-primary", "px-4", "py-12", "font-sans", "text-primary-foreground", "antialiased", "md:py-20"],
+           "classes": ["bg-primary", "px-4", "py-12", "font-sans", "text-primary-foreground", "antialiased", "sm:px-6", "md:py-20", "lg:px-8", "lg:py-28"],
            "children": [
              {
                "key": "upsell-wrap",
                "type": "container",
-               "classes": ["mx-auto", "grid", "max-w-6xl", "items-center", "gap-10", "md:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]"],
+               "classes": ["mx-auto", "grid", "max-w-7xl", "items-center", "gap-10", "md:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]", "lg:gap-16"],
                "children": [
                  {
                    "key": "upsell-copy",
                    "type": "container",
-                   "classes": ["flex", "max-w-xl", "flex-col", "gap-6"],
+                   "classes": ["flex", "max-w-3xl", "flex-col", "gap-6", "lg:gap-8"],
                    "children": [
-                     {"key": "upsell-confirmation", "type": "text", "tag": "p", "text": "Your Order is confirmed.", "classes": ["rounded-2xl", "bg-background", "p-4", "text-base", "font-bold", "text-foreground"], "children": []},
-                     {"key": "upsell-heading", "type": "heading", "tag": "h1", "text": "Add the implementation sprint before you start", "classes": ["text-4xl", "font-black", "leading-tight", "tracking-tight", "text-primary-foreground", "md:text-6xl"], "children": []},
-                     {"key": "upsell-intro", "type": "text", "tag": "p", "text": "You already have the course. This upgrade gives you the prompts, templates, and review checklist that make the first implementation faster.", "classes": ["max-w-[65ch]", "text-lg", "leading-relaxed", "text-primary-foreground", "md:text-xl"], "children": []},
-                     {"key": "upsell-benefits", "type": "container", "classes": ["grid", "gap-3", "text-base", "leading-relaxed"], "children": [
-                       {"key": "upsell-benefit-1", "type": "text", "tag": "p", "text": "Turn the first lesson into a working Funnel checklist.", "classes": ["rounded-xl", "bg-background", "p-4", "font-semibold", "text-foreground"], "children": []},
-                       {"key": "upsell-benefit-2", "type": "text", "tag": "p", "text": "Use swipe files for the Offer, Checkout, and thank-you steps.", "classes": ["rounded-xl", "bg-background", "p-4", "font-semibold", "text-foreground"], "children": []},
-                       {"key": "upsell-benefit-3", "type": "text", "tag": "p", "text": "Review the launch against revenue signals, not vibes.", "classes": ["rounded-xl", "bg-background", "p-4", "font-semibold", "text-foreground"], "children": []}
+                     {"key": "upsell-confirmation", "type": "text", "tag": "p", "text": "Your Order is confirmed.", "classes": ["rounded-2xl", "bg-background", "p-4", "text-base", "font-bold", "text-foreground", "md:text-lg"], "children": []},
+                     {"key": "upsell-heading", "type": "heading", "tag": "h1", "text": "Add the implementation sprint before you start", "classes": ["text-4xl", "font-black", "leading-none", "tracking-tight", "text-primary-foreground", "md:text-6xl", "lg:text-7xl"], "children": []},
+                     {"key": "upsell-intro", "type": "text", "tag": "p", "text": "You already have the course. This upgrade gives you the prompts, templates, and review checklist that make the first implementation faster.", "classes": ["max-w-[65ch]", "text-lg", "leading-relaxed", "text-primary-foreground", "md:text-xl", "lg:text-2xl"], "children": []},
+                     {"key": "upsell-benefits", "type": "container", "classes": ["grid", "gap-4", "text-base", "leading-relaxed", "md:text-xl"], "children": [
+                       {"key": "upsell-benefit-1", "type": "text", "tag": "p", "text": "Turn the first lesson into a working Funnel checklist.", "classes": ["rounded-xl", "bg-background", "p-5", "font-semibold", "text-foreground"], "children": []},
+                       {"key": "upsell-benefit-2", "type": "text", "tag": "p", "text": "Use swipe files for the Offer, Checkout, and thank-you steps.", "classes": ["rounded-xl", "bg-background", "p-5", "font-semibold", "text-foreground"], "children": []},
+                       {"key": "upsell-benefit-3", "type": "text", "tag": "p", "text": "Review the launch against revenue signals, not vibes.", "classes": ["rounded-xl", "bg-background", "p-5", "font-semibold", "text-foreground"], "children": []}
                      ]}
                    ]
                  },
                  {
                    "key": "upsell-offer-panel",
                    "type": "container",
-                   "classes": ["rounded-2xl", "bg-card", "p-6", "text-foreground", "shadow-elevated", "md:p-8"],
+                   "classes": ["rounded-2xl", "bg-card", "p-6", "text-foreground", "shadow-elevated", "md:p-8", "lg:p-10"],
                    "children": [
-                     {"key": "upsell-offer-heading", "type": "heading", "tag": "h2", "text": "One decision before access", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground"], "children": []},
-                     {"key": "upsell-offer-copy", "type": "text", "tag": "p", "text": "Add the sprint now and implement while the course is fresh.", "classes": ["mt-3", "text-base", "font-semibold", "leading-relaxed", "text-foreground"], "children": []},
+                     {"key": "upsell-offer-heading", "type": "heading", "tag": "h2", "text": "One decision before access", "classes": ["text-3xl", "font-black", "tracking-tight", "text-foreground", "md:text-5xl"], "children": []},
+                     {"key": "upsell-offer-copy", "type": "text", "tag": "p", "text": "Add the sprint now and implement while the course is fresh.", "classes": ["mt-3", "text-base", "font-semibold", "leading-relaxed", "text-foreground", "md:text-lg"], "children": []},
                      {"key": "upsell-offer", "type": "checkout-offer", "config": {"showImage": false, "showName": true, "showDescription": true, "showPrice": true, "showStrikethrough": true}, "children": []},
-                     {"key": "upsell-proof", "type": "text", "tag": "p", "text": "Best for operators who want the course implemented this week, not bookmarked for later.", "classes": ["mt-5", "rounded-2xl", "bg-muted", "p-4", "text-base", "font-semibold", "leading-relaxed", "text-foreground"], "children": []},
-                     {"key": "upsell-accept", "type": "button", "tag": "a", "attributes": {"href": "{{ offer.acceptUrl }}"}, "text": "Yes, add this to my Order", "classes": ["mt-8", "inline-flex", "h-16", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-8", "text-lg", "font-black", "text-primary-foreground", "shadow-elevated"], "children": []},
-                     {"key": "upsell-decline", "type": "button", "tag": "a", "attributes": {"href": "{{ offer.declineUrl }}"}, "text": "No thanks, continue to my access", "classes": ["mt-4", "inline-flex", "w-full", "items-center", "justify-center", "text-sm", "font-semibold", "text-foreground"], "children": []}
+                     {"key": "upsell-proof", "type": "text", "tag": "p", "text": "Best for operators who want the course implemented this week, not bookmarked for later.", "classes": ["mt-5", "rounded-2xl", "bg-muted", "p-4", "text-base", "font-semibold", "leading-relaxed", "text-foreground", "md:text-lg"], "children": []},
+                     {"key": "upsell-accept", "type": "button", "tag": "a", "attributes": {"href": "{{ offer.acceptUrl }}"}, "text": "Yes, add this to my Order", "classes": ["mt-8", "inline-flex", "h-16", "w-full", "items-center", "justify-center", "rounded-2xl", "bg-primary", "px-8", "text-lg", "font-black", "text-primary-foreground", "shadow-elevated", "md:text-xl"], "children": []},
+                     {"key": "upsell-decline", "type": "button", "tag": "a", "attributes": {"href": "{{ offer.declineUrl }}"}, "text": "No thanks, continue to my access", "classes": ["mt-4", "inline-flex", "w-full", "items-center", "justify-center", "text-sm", "font-semibold", "text-foreground", "md:text-base"], "children": []}
                    ]
                  }
                ]

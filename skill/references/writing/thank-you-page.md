@@ -64,3 +64,7 @@ Use this after `copywriting.md` has finished the shared copy argument from `inte
    A thank-you Page should make the Contact glad they acted.
    Example: "Open the Course" or "Check your inbox".
    Never: "Buy now before this disappears" unless the brief proves a real post-purchase Offer and timing reason.
+
+6. Route drafted copy through the final editing pass.
+
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`

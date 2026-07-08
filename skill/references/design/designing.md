@@ -42,6 +42,7 @@ Use this after `writing/copywriting.md` has produced finished copy. The failure 
 3. Lay out the argument.
 
    - Mobile comes first. Stack by default and add `md:` columns only when the content benefits.
+   - Desktop funnels must use a large type scale and fill the width: widen wrappers toward `max-w-7xl` or `max-w-[90rem]`, use two-column layouts when proof, Offer, form, or CTA support can sit beside the claim, and never leave a narrow centered column with tiny text and broad empty margins on desktop.
    - Use `section` for full-width bands and `container` for max-width layout wrappers.
    - Use grid or flex classes with `gap-*` for sibling spacing.
    - Cap long prose with `max-w-[65ch]` or a narrower readable width.
@@ -60,6 +61,8 @@ Use this after `writing/copywriting.md` has produced finished copy. The failure 
 
    - Body text must meet at least 4.5:1 contrast against its background. Large text and UI elements need at least 3:1.
    - Keep display letter spacing no tighter than `-0.04em`; `tracking-tight` is enough for most headings.
+   - Push brand-led desktop display type toward `lg:text-7xl` and primary section headings toward `lg:text-6xl`; this stays well under the 6rem display ceiling while making dense Funnel copy feel intentional.
+   - Use comfortable heavy-copy body sizes on desktop: lead paragraphs should reach `md:text-xl` and can reach `lg:text-2xl` when paired with a wide two-column layout; supporting body copy should generally reach `md:text-lg` or `md:text-xl` with `leading-relaxed`.
    - Keep hero display size bounded; if a heading wraps badly on mobile or tablet, reduce the scale or rewrite with the copy process.
    - Keep body line length at or below 65ch.
    - Prefer `rounded-2xl` for cards and panels. Do not use `rounded-[2rem]` on cards, sections, forms, or inputs.

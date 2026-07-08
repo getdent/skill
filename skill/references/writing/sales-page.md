@@ -83,3 +83,7 @@ Use this after `copywriting.md` has shaped the shared claim-proof argument from 
    The Page sells; Checkout completes.
    Example: "Start Checkout for the Course".
    Never: "Learn more" as the primary purchase CTA.
+
+7. Route drafted copy through the final editing pass.
+
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`

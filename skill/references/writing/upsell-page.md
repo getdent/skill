@@ -66,3 +66,7 @@ Use this after `copywriting.md` has clarified the shared promise, proof, and Off
    Trust after the purchase is worth more than a forced click.
    Example: "Yes, add the sprint to my Order" and "No thanks, continue to my access".
    Never: "No, I do not want faster results".
+
+6. Route drafted copy through the final editing pass.
+
+   AI tells, pompous wording, and wall-of-text cleanup before design → `writing/editing.md`
