@@ -7,7 +7,7 @@
     "type": "git",
     "url": "git+https://github.com/heyJordanParker/dent-cli.git"
   },
-  "homepage": "https://github.com/heyJordanParker/dent-cli#readme",
+  "homepage": "https://github.com/heyJordanParker/dent-cli/blob/main/Claude.md",
   "bugs": {
     "url": "https://github.com/heyJordanParker/dent-cli/issues"
   },
@@ -17,15 +17,19 @@
   },
   "files": [
     "cli/",
+    "providers.json",
     "skill/",
     "scripts/",
     "dist/",
-    "README.md"
+    "Claude.md"
   ],
   "scripts": {
     "build": "node scripts/build.js",
     "check": "node cli/bin/dent.js check",
-    "prepack": "node scripts/build.js"
+    "dent-skill": "node cli/bin/dent.js",
+    "test": "node --test test/",
+    "prepack": "node scripts/build.js",
+    "check:workflows": "node scripts/check-workflows.js"
   },
   "engines": {
     "node": ">=20"

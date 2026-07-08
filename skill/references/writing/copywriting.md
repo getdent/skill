@@ -64,12 +64,10 @@ Use this after `interview.md` has produced the shared brief. The failure it prev
 
    - Writing an opt-in Page or lead-capture Funnel Step → `writing/optin-page.md`
    - Writing a sales Page or sales Funnel Step → `writing/sales-page.md`
-   - Writing a Checkout Funnel Step → `writing/checkout.md`
+    - Writing a Checkout Funnel Step → use the Checkout guidance in `writing/sales-page.md`
    - Writing an upsell Funnel Step → `writing/upsell-page.md`
    - Writing a thank-you Page or Funnel Step → `writing/thank-you-page.md`
    - Writing an Article or content Page → `writing/article.md`
-   - Writing a homepage Page → `writing/homepage.md`
-   - Writing a pricing Page → `writing/pricing.md`
 
 6. Route drafted copy through the final editing pass.
 

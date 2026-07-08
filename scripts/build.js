@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, cpSync, chmodSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
-const sourcePath = join(rootDir, 'skill', 'SKILL.src.md');
+const providerConfig = JSON.parse(readFileSync(join(rootDir, 'providers.json'), 'utf8'));
+const sourcePath = join(rootDir, 'skill', 'Source.md');
 const distDir = join(rootDir, 'dist');
-
-const providers = [
-  { name: 'claude-code', label: 'Claude Code', mode: 'cli' },
-  { name: 'codex', label: 'Codex / Agents', mode: 'cli' },
-];
+const providers = providerConfig.providers;
 
 function ensureDir(path) {
   mkdirSync(path, { recursive: true });
@@ -23,6 +21,12 @@ function replacePlaceholders(text, provider) {
   return text
     .replaceAll('{{VERSION}}', packageJson.version)
     .replaceAll('{{PROVIDER}}', provider?.label || 'Claude web');
+}
+
+function customizeProviderFile(text, provider, relativePath) {
+  const markdown = filterBlocks(replacePlaceholders(text, provider), provider.mode);
+  if (provider.customize === 'none' || !provider.customize) return markdown;
+  throw new Error(`Unknown provider customization for ${provider.name} at ${relativePath}: ${provider.customize}`);
 }
 
 function filterBlocks(text, mode) {
@@ -68,7 +72,7 @@ function copyDirectory(source, destination, provider = null) {
       continue;
     }
     const sourceText = readFileSync(sourceEntry, 'utf8');
-    const markdown = filterBlocks(replacePlaceholders(sourceText, provider), provider.mode);
+    const markdown = customizeProviderFile(sourceText, provider, relative(source, sourceEntry).replaceAll('\\', '/'));
     writeFileSync(destinationEntry, markdown);
   }
 }
@@ -76,14 +80,36 @@ function copyDirectory(source, destination, provider = null) {
 function compileSkill(destination, provider) {
   ensureDir(destination);
   const source = readFileSync(sourcePath, 'utf8');
-  const markdown = filterBlocks(replacePlaceholders(source, provider), provider.mode);
+  const markdown = customizeProviderFile(source, provider, 'SKILL.md');
   writeFileSync(join(destination, 'SKILL.md'), markdown);
   copyDirectory(join(rootDir, 'skill', 'references'), join(destination, 'references'), provider);
   if (provider.mode === 'cli') copyDirectory(join(rootDir, 'skill', 'scripts'), join(destination, 'scripts'));
-  for (const scriptName of ['context.js', 'staleness-check.js']) {
+  for (const scriptName of ['context.js']) {
     const scriptPath = join(destination, 'scripts', scriptName);
     if (existsSync(scriptPath)) chmodSync(scriptPath, 0o755);
   }
+}
+
+function contentHash(root) {
+  const hash = createHash('sha256');
+  for (const file of walkFiles(root).sort()) {
+    const relativePath = relative(root, file).replaceAll('\\', '/');
+    if (relativePath === '.dent-skill.json') continue;
+    hash.update(relativePath);
+    hash.update('\0');
+    hash.update(readFileSync(file));
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+function writeManifest(destination, provider) {
+  writeFileSync(join(destination, '.dent-skill.json'), `${JSON.stringify({
+    package: packageJson.name,
+    version: packageJson.version,
+    provider: provider.name,
+    contentHash: contentHash(destination),
+  }, null, 2)}\n`);
 }
 
 function walkFiles(root) {
@@ -195,11 +221,18 @@ function createZip(sourceRoot, destinationZip) {
 rmSync(distDir, { recursive: true, force: true });
 for (const provider of providers) {
   compileSkill(join(distDir, 'providers', provider.name, 'dent'), provider);
+  writeManifest(join(distDir, 'providers', provider.name, 'dent'), provider);
+  console.log(`Customized provider bundle through seam: ${provider.name}`);
 }
-compileSkill(join(distDir, 'web', 'dent'), { label: 'Claude web', mode: 'web' });
-createZip(join(distDir, 'web', 'dent'), join(distDir, 'web', 'dent.zip'));
+const webProvider = providers.find(provider => provider.mode === 'web');
+if (webProvider) {
+  createZip(join(distDir, 'providers', webProvider.name, 'dent'), join(distDir, 'providers', webProvider.name, 'dent.zip'));
+  ensureDir(join(distDir, 'web'));
+  cpSync(join(distDir, 'providers', webProvider.name, 'dent.zip'), join(distDir, 'web', 'dent.zip'));
+}
 
 console.log(`Built Dent skill v${packageJson.version}`);
-console.log('  dist/providers/claude-code/dent');
-console.log('  dist/providers/codex/dent');
-console.log('  dist/web/dent.zip');
+for (const provider of providers) {
+  console.log(`  dist/providers/${provider.name}/dent`);
+}
+if (webProvider) console.log(`  dist/providers/${webProvider.name}/dent.zip`);

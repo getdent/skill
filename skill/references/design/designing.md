@@ -84,8 +84,6 @@ Use this after `writing/copywriting.md` has produced finished copy. The failure 
    - Designing an upsell Funnel Step → `design/upsell-page.md`
    - Designing a thank-you Page or Funnel Step → `design/thank-you-page.md`
    - Designing an Article or content Page → `design/article.md`
-   - Designing a homepage Page → `design/homepage.md`
-   - Designing a pricing Page → `design/pricing.md`
 
 6. Verify by rendering.
 

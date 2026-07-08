@@ -11,7 +11,7 @@
 <!-- dent:cli:start -->
 ## 1. Read the staleness signal
 
-The CLI variant can surface staleness through the session-start check from `scripts/staleness-check.js` or through the first `dent check` in the Dent Process.
+The CLI variant surfaces staleness through the first `dent check` in the Dent Process.
 
 - IF `dent` is not on PATH, run each Dent CLI command as `npx dent-cli@latest <command>`.
 
@@ -23,7 +23,7 @@ Never: continue a write after the session-start check or `dent check` says an up
 ## 2. Refresh the installed local skill
 
 ### Use the package updater
-Run the updater from the package; it detects Claude Code, Codex, Agents, and Cursor harnesses and rewrites the installed skill tree.
+Run the updater from the package; it detects the configured Claude Code and Codex harnesses and rewrites the installed skill tree.
 Template:
   ```bash
   dent update

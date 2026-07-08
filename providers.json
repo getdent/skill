@@ -1,0 +1,24 @@
+{
+  "providers": [
+    {
+      "name": "claude-code",
+      "label": "Claude Code",
+      "harnessDir": ".claude",
+      "mode": "cli",
+      "aliases": ["claude"]
+    },
+    {
+      "name": "codex",
+      "label": "Codex",
+      "harnessDir": ".agents",
+      "mode": "cli",
+      "aliases": ["agents"]
+    },
+    {
+      "name": "claude-web",
+      "label": "Claude web",
+      "mode": "web",
+      "aliases": ["web"]
+    }
+  ]
+}

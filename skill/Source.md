@@ -22,27 +22,31 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
      ```
 
    - If the session-start check or `dent check` says the skill is stale, update the skill before a write. Use the update reference instead of asking the user to touch a terminal.
-   - If `dent whoami` fails, run `dent login`. It defaults to the production Dent Platform browser device-code authorization flow, lets the user approve the CLI, lets multi-Site users pick the Site in the browser, and stores the credential. Use `--site-url` or `DENT_SITE_URL` only to override the target for staging or local development. Never put a token in argv.
+   - If `dent whoami` fails, run `dent login`. The standalone CLI starts Dent's OAuth 2.0 Authorization Code + PKCE login against production Dent by default (`https://ondent.app`): it opens the browser, the operator signs in and clicks Authorize, the loopback callback receives the authorization code, and the CLI exchanges code + verifier before saving the token. This is the same flow an agent can guide; the agent layer does not replace the CLI.
+   - If loopback cannot reach the CLI (remote browser, web agent, locked-down machine), run `dent login --copy-code`. The operator authorizes in the browser, copies the short code Dent shows, and pastes it into the CLI. The code still exchanges only with that CLI's PKCE verifier.
+   - Never ask the operator to create a personal access token for normal login. Never put a token in argv. Explicit token input remains only for power-user recovery with `--token-prompt` or `--stdin`.
 
      ```bash
      dent login
-     echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com --platform-url https://ondent.app --stdin
+     dent login --copy-code
      ```
 
-   - Use `dent logout` when the stored credential should be removed. It revokes the stored Dent token server-side first, then removes the local config; if revocation cannot complete, it says so and still removes the local config.
+   - Use `bun dent-skill setup` only when developing against a local Dent repo. It switches the CLI and skill to the local target while preserving the live credential. Use `bun dent-skill reset` to switch back to the live target without re-authenticating either target.
 
-   - Power users may set the credential variables below. `DENT_SITE_URL` and `DENT_API_KEY` each override the matching stored config field and fall back to stored config for the other; `DENT_PLATFORM_URL` is used by login/logout when token revocation needs a separate Platform host:
+   - Use `dent logout` when the active target's stored credential should be removed.
 
-     ```bash
-     export DENT_SITE_URL=https://example.com
-     export DENT_API_KEY=...
-     export DENT_PLATFORM_URL=https://ondent.app
-     ```
+   - Power users may set the credential variables below. `DENT_TARGET` selects `live` or `local`; `DENT_SITE_URL` and `DENT_API_KEY` each override the matching active stored credential and fall back to stored config for the other:
+
+      ```bash
+      export DENT_TARGET=live
+      export DENT_SITE_URL=https://example.com
+      export DENT_API_KEY=...
+      ```
    <!-- dent:cli:end -->
 
    <!-- dent:web:start -->
-   - Claude web has no local CLI. Ask for the Dent Site URL and a Dent personal access token for this chat.
-   - Use direct HTTP. Keep the token in memory only; never write it to a file.
+   - Claude web has no local CLI, so the operator must paste a Dent personal access token for this chat. That token is a sensitive bearer credential, like a password, and is needed only so this chat can call the Dent API.
+   - Use direct HTTP. Keep the token in chat memory only; never write it to a file, report, or command line.
 
      ```js
      const siteUrl = 'https://example.com';
@@ -67,18 +71,18 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
 2. Fetch the schema catalog first; never guess entity names, fields, actions, or routes.
 
-   - Tenant catalog: `GET /api/v1/schema/`.
-   - Platform catalog: `GET /platform/api/v1/schema/` on the Platform host.
-   - Local dev tenant: `https://testing.dent.lndo.site`. The bare `https://dent.lndo.site` is Platform and 404s tenant routes.
+   - Catalog: `GET /api/v1/schema/`.
+   - Local development target switching is owned by `bun dent-skill setup` and `bun dent-skill reset`; do not hardcode local Dent URLs in the skill.
    - Read the target entity's `fields`, `actions`, `parameters`, `mode`, `target`, and `access` before writing. The Funnel Step `status` field is in the catalog; set it through the generic step update route.
    - Action bodies are top-level fields. Do not wrap them in `{attributes: ...}` unless the catalog parameter is literally named `attributes` and the action expects that wrapper from a non-generic endpoint. For Dent generic create/update/actions, send the fields directly.
 
    <!-- dent:cli:start -->
    ```bash
    dent schema
-   dent schema funnels
-   dent api funnels
-   dent api courses 9203 sections
+    dent schema funnels
+    dent api funnels
+    dent api courses 9203 sections
+    dent api dent breakdown --param dimension=source --param period=last_month --param includeAdmin=true --param limit=5
    ```
 
    `dent api` resolves HTTP methods from the tenant schema catalog for each invocation: `read` actions use `GET`, `write` and `remote` actions use `POST`, and `destroy` actions use `DELETE`. `--method` is the explicit override. Do not infer a write from positional shape; a bare nested collection like `dent api courses 9203 sections` is a list (`GET`). Creates require `--data` or an explicit method.
@@ -182,29 +186,32 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
      Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}` for the Checkout, Upsell, and Thank You Funnel Steps. Public URLs, form submits, and Checkout require a published Funnel Step on an active Funnel.
    - Start Checkout like a real Visitor: `GET` the Checkout Funnel Step `viewUrl` first and keep the response cookies. That pageview creates the Funnel Session/Journey/Cart context. Send later `POST /api/v1/funnel/cart` mutations and Checkout submit calls with those same cookies; without the step pageview they return `401 No active funnel session`.
 
-6. Build a Dent-selling Funnel that provisions a Tenant.
+6. Build a Dent-selling Funnel that delivers Dent access and triggers tenant provisioning.
 
    - Start with the page creation sequence for the Dent-selling Checkout, Upsell, and Thank You Funnel Steps so the Funnel presents the Offer like a polished sales surface, not a wireframe.
-   - Create a Webhook Endpoint for Platform provisioning. `customHeaders` is write-only; use it to send the Platform bearer token:
+   - Provisioning is Product delivery. Configure the Product included in the sold Offer with the access grants and provisioning webhook it must deliver after purchase; do not add a separate operator API step.
+   - Create or choose the Webhook Endpoint for the provisioning webhook target. `customHeaders` is write-only; use it only for the secret that target expects:
 
      ```json
      {
-       "name": "Platform Provisioning",
-       "url": "https://dent.lndo.site/platform/api/v1/provisioning",
+       "name": "Dent Provisioning",
+       "url": "https://provisioning.example.com/dent/product-delivery",
        "events": [],
-       "customHeaders": {"Authorization": "Bearer <platform-token>"},
+       "customHeaders": {"Authorization": "Bearer <provisioning-secret>"},
        "enabled": true
      }
      ```
 
      Send it to `POST /api/v1/webhook-endpoints`.
-   - Create the Dent Product with a delivery webhook that sends Platform provisioning data:
+   - Create the Dent Product with Product delivery configuration. Use `courseIds` or `spaceIds` for Dent access grants the buyer receives, and `webhooks` for the provisioning webhook payload:
 
      ```json
      {
        "name": "Dent Pro",
        "value": 197,
        "status": "publish",
+       "courseIds": [321],
+       "spaceIds": [654],
        "webhooks": [{
          "endpointId": 17,
          "parameters": {
@@ -225,7 +232,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
    - Create the Offer for that Product, then build Checkout, Upsell, and Thank You Funnel Steps exactly as in step 5.
    - Publish every public Funnel Step exactly as in step 5 before opening `viewUrl`, changing the Cart, or submitting Checkout.
    - Before Cart or Checkout API calls, `GET` the Checkout Funnel Step `viewUrl` with a cookie jar and reuse those cookies for `POST /api/v1/funnel/cart` and Checkout submit calls.
-   - A TestGateway purchase of the Offer creates the Order, runs Product delivery, posts `product.delivery` to Platform provisioning, records a delivered Webhook Delivery with `responseCode: 200`, and creates a Tenant with `plan: "pro"`, `status: "active"`, and `setupStatus: "ready"`.
+   - A TestGateway purchase of the Offer creates the Order, runs Product delivery, grants the configured Course or Space access, posts `product.delivery` to the configured provisioning webhook, and records the Webhook Delivery response. Treat tenant creation as the provisioning webhook's downstream effect, not as a separate operator API step in this skill.
 
 7. Create Articles and Pages as Designables.
 
@@ -276,12 +283,16 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
    - Read Component Design with `GET /api/v1/components/{componentId}/design`.
    - Replace Component Design with `POST /api/v1/components/{componentId}/replace-design`.
 
-10. Query Analytics, break down revenue, and export CSV.
+10. Query Analytics and break down revenue.
 
    - Use `GET /api/v1/dent/breakdown?dimension=source&period=last_month&includeAdmin=true&limit=5` for breakdowns.
    - Use `GET /api/v1/orders/revenue-by-source?period=last_month&attribution=first_touch` for source revenue.
-   - Use `GET /api/v1/dent/export-breakdown?dimension=source&period=last_month&includeAdmin=true&limit=1000` with `Accept: text/csv` for scripted analysis. The response is CSV, not JSON.
-   - `breakdown` and `export-breakdown` accept `dimension`. Available dimensions: `source`, `referrer`, `campaign`, `country`, `region`, `city`, `device`, `browser`, `entry_pages`.
+   - `breakdown` accepts `dimension`. Available dimensions: `source`, `referrer`, `campaign`, `country`, `region`, `city`, `device`, `browser`, `entry_pages`.
+   - In the CLI variant, pass catalog action parameters as query parameters:
+
+     ```bash
+     dent api dent breakdown --param dimension=source --param period=last_month --param includeAdmin=true --param limit=5
+     ```
 
 11. Set up selling: Products, Offers, Courses, Spaces.
 
@@ -312,18 +323,18 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
 ## References (each solves one problem)
 
-- The installed Dent skill is stale → updating-the-skill.md
-- Checking Dent API route grammar and auth details → api.md
-- Establishing the Page, Article, or Funnel Step brief in operator language → interview.md
-- Writing Page, Article, and Funnel Step copy before design → writing/copywriting.md
-- Writing opt-in Page or lead-capture Funnel Step copy → writing/optin-page.md
-- Writing sales Page, sales Funnel Step, or Checkout copy → writing/sales-page.md
-- Writing one-click upsell Funnel Step copy → writing/upsell-page.md
-- Writing thank-you Page or confirmation Funnel Step copy → writing/thank-you-page.md
-- Writing Article or content Page copy → writing/article.md
-- Designing Page, Article, and Funnel Step visuals after copy → design/designing.md
-- Designing opt-in Page or lead-capture Funnel Step visuals → design/optin-page.md
-- Designing sales Page, sales Funnel Step, or Checkout visuals → design/sales-page.md
-- Designing one-click upsell Funnel Step visuals → design/upsell-page.md
-- Designing thank-you Page or confirmation Funnel Step visuals → design/thank-you-page.md
-- Designing Article or content Page visuals → design/article.md
+- The installed Dent skill is stale → references/updating-the-skill.md
+- Checking Dent API route grammar and auth details → references/api.md
+- Establishing the Page, Article, or Funnel Step brief in operator language → references/interview.md
+- Writing Page, Article, and Funnel Step copy before design → references/writing/copywriting.md
+- Writing opt-in Page or lead-capture Funnel Step copy → references/writing/optin-page.md
+- Writing sales Page, sales Funnel Step, or Checkout copy → references/writing/sales-page.md
+- Writing one-click upsell Funnel Step copy → references/writing/upsell-page.md
+- Writing thank-you Page or confirmation Funnel Step copy → references/writing/thank-you-page.md
+- Writing Article or content Page copy → references/writing/article.md
+- Designing Page, Article, and Funnel Step visuals after copy → references/design/designing.md
+- Designing opt-in Page or lead-capture Funnel Step visuals → references/design/optin-page.md
+- Designing sales Page, sales Funnel Step, or Checkout visuals → references/design/sales-page.md
+- Designing one-click upsell Funnel Step visuals → references/design/upsell-page.md
+- Designing thank-you Page or confirmation Funnel Step visuals → references/design/thank-you-page.md
+- Designing Article or content Page visuals → references/design/article.md
