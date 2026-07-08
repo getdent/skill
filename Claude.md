@@ -23,14 +23,14 @@ echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com -
 
 ## Why
 
-`dent-cli` ships one executable, `dent`, plus compiled AI-agent skill bundles so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into provider bundles that keep Claude Code, Codex, and Claude web aligned with Dent's schema catalog.
+`@parkerlabs/dent` ships one executable, `dent`, plus compiled AI-agent skill bundles so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into provider bundles that keep Claude Code, Codex, and Claude web aligned with Dent's schema catalog.
 
 Dent is multi-tenant. Each active target has a Dent Site URL and stored credential. The CLI stores verified credentials outside project directories, then agents can drive Dent's schema-driven tenant API.
 
 ## Quick start
 
 ```bash
-npm install -g dent-cli
+npm install -g @parkerlabs/dent
 dent install
 dent login
 ```
@@ -38,11 +38,11 @@ dent login
 Transient `npx` setup works too, but it does not leave a `dent` command installed:
 
 ```bash
-npx dent-cli@latest install
-npx dent-cli@latest login
+npx @parkerlabs/dent@latest install
+npx @parkerlabs/dent@latest login
 ```
 
-If `dent` is not on `PATH`, run each Dent CLI command as `npx dent-cli@latest <command>`.
+If `dent` is not on `PATH`, run each Dent CLI command as `npx @parkerlabs/dent@latest <command>`.
 
 ## Install the agent skill
 

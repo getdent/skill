@@ -13,7 +13,7 @@
 
 The CLI variant surfaces staleness through the first `dent check` in the Dent Process.
 
-- IF `dent` is not on PATH, run each Dent CLI command as `npx dent-cli@latest <command>`.
+- IF `dent` is not on PATH, run each Dent CLI command as `npx @parkerlabs/dent@latest <command>`.
 
 ### Treat either stale message as a stop-before-write condition
 Pause Dent writes, tell the user the skill is stale, and update it before touching data.

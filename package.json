@@ -1,6 +1,9 @@
 {
-  "name": "dent-cli",
+  "name": "@parkerlabs/dent",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Dent CLI and AI-agent skill installer for schema-driven Dent API operations.",
   "license": "UNLICENSED",
   "repository": {

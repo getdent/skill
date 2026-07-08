@@ -13,7 +13,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 1. Establish the session before touching data.
 
    <!-- dent:cli:start -->
-   - IF `dent` is not on PATH, run each Dent CLI command as `npx dent-cli@latest <command>`.
+   - IF `dent` is not on PATH, run each Dent CLI command as `npx @parkerlabs/dent@latest <command>`.
    - Run the local checks:
 
      ```bash
