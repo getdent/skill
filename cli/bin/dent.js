@@ -1034,10 +1034,11 @@ function installedState(source, destination) {
   const sourceManifest = readSkillManifest(source);
   const destinationManifest = readSkillManifest(destination);
   if (sourceManifest && destinationManifest) {
+    // Provider is informational, not compared: harness dirs can alias one physical
+    // directory (symlinked setups), and contentHash already detects divergent bundles.
     if (
       sourceManifest.package === destinationManifest.package
       && sourceManifest.version === destinationManifest.version
-      && sourceManifest.provider === destinationManifest.provider
       && sourceManifest.contentHash === destinationManifest.contentHash
     ) {
       return { status: 'current', source: 'manifest', manifest: destinationManifest };
