@@ -22,6 +22,7 @@ Fetch the catalog before writes. Confirm the entity's fields and action paramete
 ## Public Funnel requests
 
 - Publish public Funnel Steps before opening `viewUrl`, submitting forms, changing the Cart, or submitting Checkout.
+- Publishing a Step or Page, or `replace-design` on one already published, validates the Design and returns `422` with element-keyed messages if publish validation fails (expression syntax, form completeness, script/branch references). Nothing persists on failure. Draft saves keep warnings and always persist.
 - `replace-design` returns Design data, not Step metadata. Read the Step after publishing to confirm `status`, `viewUrl`, and derived flags such as `hasOptinAction` and `hasBuilder`.
 - Public form submit path: `GET` the Step `viewUrl` with cookies, then `POST /api/v1/forms/submit` with `{ "owner": {"type": "step", "id": stepId}, "form": "form-key", "fields": {...} }` using those cookies.
 - Find a captured Contact with `GET /api/v1/contacts?search=<email>`.

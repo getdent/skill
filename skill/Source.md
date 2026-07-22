@@ -190,19 +190,18 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
    - Start with the page creation sequence for the Dent-selling Checkout, Upsell, and Thank You Funnel Steps so the Funnel presents the Offer like a polished sales surface, not a wireframe.
    - Provisioning is Product delivery. Configure the Product included in the sold Offer with the access grants and provisioning webhook it must deliver after purchase; do not add a separate operator API step.
-   - Create or choose the Webhook Endpoint for the provisioning webhook target. `customHeaders` is write-only; use it only for the secret that target expects:
+   - Create or choose the Webhook Endpoint for the provisioning webhook target. Dent signs every delivery with an HMAC secret it generates on create and returns once in the create response; capture that `secret` and verify the signature on the target. `customHeaders` is not a create field — it is not mass-assignable, so sending it in the body is silently dropped:
 
      ```json
      {
        "name": "Dent Provisioning",
        "url": "https://provisioning.example.com/dent/product-delivery",
        "events": [],
-       "customHeaders": {"Authorization": "Bearer <provisioning-secret>"},
        "enabled": true
      }
      ```
 
-     Send it to `POST /api/v1/webhook-endpoints`.
+     Send it to `POST /api/v1/webhook-endpoints` and read `secret` from the response.
    - Create the Dent Product with Product delivery configuration. Use `courseIds` or `spaceIds` for Dent access grants the buyer receives, and `webhooks` for the provisioning webhook payload:
 
      ```json
@@ -304,7 +303,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
 12. Add Course content and manage Spaces.
 
-   - Section: `POST /api/v1/courses/{courseId}/sections` with `{ "title", "position", "status": "published" }`.
+   - Section: `POST /api/v1/courses/{courseId}/sections` with `{ "title", "position" }`. Sections publish by default; `status` is not a create field, so do not send it.
    - Read ordered Course Sections with `GET /api/v1/courses/{courseId}/sections`.
    - Lesson: `POST /api/v1/sections/{sectionId}/lessons` with `{ "title", "body", "position", "status": "published", "contentType": "text" }`.
    - Read ordered Section Lessons with `GET /api/v1/sections/{sectionId}/lessons`.
@@ -317,6 +316,7 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
 
    - Use Dent's words exactly; never write Product when the object is an Offer, never write Page when the object is a Funnel Step.
    - Prefer small read-after-write checks and include exact ids changed in your answer.
+   - Publishing a Funnel Step or Page (`{"status": "published"}`), or `replace-design` on one already published, validates the Design at the persistence chokepoint. If publish validation fails — invalid expression syntax, incomplete forms, or unresolved script or branch references — Dent returns `422` with element-keyed messages and does not persist. Fix the Design, not the status call. A draft save keeps its warnings and always persists.
    - Show Dent's error status and body. Do not invent fallbacks.
    - Do not use `/wp/wp-login.php`, WordPress admin-ajax, Bricks save routes, or WordPress REST routes for these workflows. A need for those routes is a first-party API gap to report.
    - Never place a bearer token in argv, a project file, a report, or a commit.
