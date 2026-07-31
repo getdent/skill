@@ -44,6 +44,7 @@ Commands:
   logout                  Remove the stored Dent credential for the active target
   setup                   Point this checkout at a local Dent repo target
   reset                   Return this checkout to the live Dent target
+  status                  Show the active target, credential state, and authenticated tenant
   whoami                  Fetch /api/v1/schema/ to prove the current credential works
   schema [entity]         Fetch and pretty-print the schema catalog or one entity
   api <entity> [id] [action]
@@ -716,6 +717,70 @@ function reset() {
   console.log(`Config: ${file}`);
 }
 
+function describeCredentialSources(credential) {
+  return {
+    siteUrl: process.env.DENT_SITE_URL ? 'DENT_SITE_URL' : credential?.siteUrl ? 'stored config' : 'missing',
+    apiKey: process.env.DENT_API_KEY ? 'DENT_API_KEY' : credential?.apiKey ? 'stored config' : 'missing',
+  };
+}
+
+function accountProfileSummary(body) {
+  const profile = body?.data || body || {};
+  const name = profile.name || [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+  const email = profile.email;
+  if (name && email) return `${name} <${email}>`;
+  if (name || email) return name || email;
+  return JSON.stringify(profile);
+}
+
+async function status() {
+  const stored = readStoredConfig();
+  const targetName = activeTargetName(stored);
+  const targetSource = process.env.DENT_TARGET ? 'DENT_TARGET' : stored?.activeTarget ? 'stored config' : 'default';
+  const credential = storedCredential(stored, targetName);
+  const sources = describeCredentialSources(credential);
+  const siteUrl = process.env.DENT_SITE_URL || credential?.siteUrl || '';
+  console.log(`Target:      ${targetName} (from ${targetSource})`);
+  console.log(`Site URL:    ${siteUrl ? `${siteUrl} (from ${sources.siteUrl})` : 'missing'}`);
+  console.log(`Credential:  ${sources.apiKey}${sources.apiKey === 'stored config' && credential?.savedAt ? ` (saved ${credential.savedAt})` : ''}`);
+  if (targetName === localTargetName && credential?.dentRepo) console.log(`Local repo:  ${credential.dentRepo}`);
+  console.log(`Config:      ${configFilePath()}`);
+  const otherName = targetName === liveTargetName ? localTargetName : liveTargetName;
+  const other = storedCredential(stored, otherName);
+  if (other?.siteUrl || other?.apiKey) {
+    console.log(`Other target: ${otherName} — ${other.apiKey ? 'credential stored' : 'no credential'}${other.siteUrl ? ` for ${other.siteUrl}` : ''}`);
+  }
+
+  try {
+    loadCredentials();
+  } catch (error) {
+    console.log(`API:         not logged in — ${error.message}`);
+    return;
+  }
+
+  let catalog;
+  try {
+    catalog = await loadSchemaCatalog();
+  } catch (error) {
+    console.log(`API:         unreachable — ${error.message}`);
+    return;
+  }
+  const entities = catalogEntities(catalog);
+  const entityCount = Array.isArray(entities) ? entities.length : Object.keys(entities).length;
+  console.log(`API:         reachable — schema catalog OK (${entityCount} entities)`);
+
+  try {
+    const account = catalogEntity(catalog, 'account');
+    const action = account && actionByNameAndTarget(account, 'profile', 'collection');
+    if (!action) throw new Error('the schema catalog has no account profile action');
+    // The live route is the entity name (/account/profile), not the label-derived plural.
+    const result = await apiRequest(`/api/v1/${encodeSegment(account.entity || 'account')}/profile`, { method: methodForAction(action) });
+    console.log(`Account:     ${accountProfileSummary(result.body)}`);
+  } catch (error) {
+    console.log(`Account:     unavailable — ${error.message}`);
+  }
+}
+
 async function whoami() {
   const result = await apiRequest('/api/v1/schema/');
   const catalog = result.body || {};
@@ -1172,6 +1237,7 @@ async function main() {
   if (command === 'logout') return logout();
   if (command === 'setup') return setup(options);
   if (command === 'reset') return reset();
+  if (command === 'status') return status();
   if (command === 'whoami') return whoami();
   if (command === 'schema') return schema(positionals[0]);
   if (command === 'api') return api(positionals, options);
