@@ -770,11 +770,8 @@ async function status() {
   console.log(`API:         reachable — schema catalog OK (${entityCount} entities)`);
 
   try {
-    const account = catalogEntity(catalog, 'account');
-    const action = account && actionByNameAndTarget(account, 'profile', 'collection');
-    if (!action) throw new Error('the schema catalog has no account profile action');
-    // The live route is the entity name (/account/profile), not the label-derived plural.
-    const result = await apiRequest(`/api/v1/${encodeSegment(account.entity || 'account')}/profile`, { method: methodForAction(action) });
+    const call = resolveApiCall(catalog, ['account', 'profile'], false);
+    const result = await apiRequest(`/api/v1/${call.pathSegments.map(encodeSegment).join('/')}`, { method: methodForAction(call.action) });
     console.log(`Account:     ${accountProfileSummary(result.body)}`);
   } catch (error) {
     console.log(`Account:     unavailable — ${error.message}`);
