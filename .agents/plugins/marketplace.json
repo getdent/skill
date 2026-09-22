@@ -1,6 +1,6 @@
 {
   "name": "getdent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "interface": {
     "displayName": "Dent"
   },
@@ -15,7 +15,7 @@
         "installation": "AVAILABLE"
       },
       "category": "Marketing",
-      "version": "0.2.0"
+      "version": "0.2.1"
     }
   ]
 }

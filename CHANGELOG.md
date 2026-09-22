@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.1
+
+- `dent check` and `dent update` scan each harness root once when the home directory is the project root, so a skills-CLI copy keeps its owner and its label prints once.
+
+## 0.2.0
 
 One skill, every AI, every install method.
 

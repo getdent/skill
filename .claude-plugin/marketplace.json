@@ -14,12 +14,12 @@
         "mode": "copy"
       },
       "description": "Operate a Dent site through the schema-driven API: funnels, offers, pages, articles, courses, analytics.",
-      "version": "0.2.0"
+      "version": "0.2.1"
     }
   ],
   "metadata": {
     "description": "Dent (https://getdent.app) plugins for Claude Code.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

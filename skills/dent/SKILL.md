@@ -3,7 +3,7 @@ name: dent
 description: "Build and run a Dent Site through its first-party API: Funnels, Pages, Offers, Articles, Courses, Spaces, Analytics. Trigger on Dent, funnel, opt-in page, sales page, checkout, course. Do not trigger for WordPress-only work."
 license: MIT
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   homepage: "https://getdent.app"
 ---
 

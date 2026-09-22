@@ -1,6 +1,6 @@
 {
   "package": "@getdent/skill",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "provider": "pointer",
-  "contentHash": "28db5f601742ba667505378236c957f340ac62f015c5a8be63b1705b95b3d25a"
+  "contentHash": "a56ce8eb8d4b457ba55a784b6d3db7f6e34503da976321281abea1e56ac7e4d4"
 }
