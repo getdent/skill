@@ -1,0 +1,49 @@
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npm test
+      - run: npm run check:workflows
+      - run: npm run check:design
+      - run: npm run check:plugin
+      - run: npm run check:clean
+      - run: node -e "const v = 'v' + require('./package.json').version; if (process.env.GITHUB_REF_NAME !== v) { console.error('tag ' + process.env.GITHUB_REF_NAME + ' != ' + v); process.exit(1); }"
+      - id: published
+        run: |
+          PACKAGE="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "$PACKAGE@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.published.outputs.published == 'false'
+        run: npm publish
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: |
+            dist/web/dent.skill
+            dist/openai/dent-plugin.zip
+          generate_release_notes: true

@@ -1,10 +1,10 @@
 ---
-description: Write opt-in Page or lead-capture Funnel Step copy from the Dent brief, preserving one promise, one CTA, minimal fields, and trust.
+description: Write opt-in Page or opt-in Funnel Step copy from the Dent brief, preserving one promise, one CTA, minimal fields, and trust.
 ---
 
 # Write an opt-in Page
 
-Use this after `copywriting.md` has locked the shared promise and argument from `interview.md`. The failure it prevents: turning a lead-capture Page or Funnel Step into a product pitch, a survey, or a generic signup screen.
+Use this after `copywriting.md` has locked the shared promise and argument from `interview.md`. The failure it prevents: turning a opt-in Page or Funnel Step into a product pitch, a survey, or a generic signup screen.
 
 ## Process
 
@@ -12,7 +12,7 @@ Use this after `copywriting.md` has locked the shared promise and argument from 
 
    - Consume `surface`, `page_job`, `audience`, `customer_situation`, `customer_language`, `promise`, `offer`, `differentiation`, `proof_points`, `proof_gaps`, `objections`, `reader_awareness_stage`, `market_sophistication`, `register`, `mood`, `visual_direction`, `constraints`, and `open_questions` from the brief.
    - Treat the typical reader as problem-aware or solution-aware unless `reader_awareness_stage` proves they are warmer.
-   - Make the lead magnet, access, or free promise the whole Offer for this surface.
+   - Make the free Offer, access, or free promise the whole Offer for this surface.
    - Keep one action: the Contact gives the minimum information needed to receive the promised value.
 
    IF `page_job` asks the reader to buy the paid Offer:
@@ -24,17 +24,17 @@ Use this after `copywriting.md` has locked the shared promise and argument from 
 
    - Compressed hero: headline, subheadline, visual or mockup, and form in one fast screen.
    - Deliverable proof: show what the reader gets, what it helps them do, and why it is instantly useful.
-   - Three to five benefit bullets: each bullet names a concrete quick win from the lead magnet.
+   - Three to five benefit bullets: each bullet names a concrete quick win from the free Offer.
    - Trust line: one real proof point, privacy note, creator credential, or expectation-setting sentence.
    - Final form repeat only when the Page is long enough to need it.
 
    ### Strip every competing path
    The only forward motion is the opt-in CTA.
-   Never: navigation, a full Product pitch, a feature grid, or multiple Offers on the same opt-in Page.
+   Never: navigation links in the copy, a full Product pitch, a feature grid, or multiple Offers on the same opt-in Page. The Site header and footer around a Page are chrome the Site adds, not copy; an opt-in that must carry no header is a Funnel Step.
 
 3. Write the headline around the traded value.
 
-   - Name the lead magnet or free access and the one useful outcome it produces.
+   - Name the free Offer or free access and the one useful outcome it produces.
    - Message-match the headline to the Link, ad, Article, or Funnel Step that brought the visitor here.
    - Use `customer_language` for the pain or desired quick win before category language.
 

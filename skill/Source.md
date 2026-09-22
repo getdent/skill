@@ -1,52 +1,61 @@
 ---
 name: dent
-version: {{VERSION}}
-description: Operate Dent via first-party API. Trigger: Dent API, Funnels, Offers, Pages, Articles, Courses, Spaces, Analytics. Do not trigger for WordPress-only work.
+description: "Build and run a Dent Site through its first-party API: Funnels, Pages, Offers, Articles, Courses, Spaces, Analytics. Trigger on Dent, funnel, opt-in page, sales page, checkout, course. Do not trigger for WordPress-only work."
+license: MIT
+metadata:
+  version: "{{VERSION}}"
+  homepage: "https://getdent.app"
 ---
 
 # Dent
 
-Dent spins up marketing Sites that sell and deliver digital Products. Operate it through the first-party schema-driven API. Vocabulary is strict: Funnel, Funnel Step, Offer, Product, Order, Cart, Checkout, Journey, Experiment, Conversion, Link, Session, Visitor Event, Attribution, Designer, Design, Designable, Site, Page, Article, Space, Course.
+[Dent](https://getdent.app) spins up marketing Sites that sell and deliver digital Products. Operate it through the first-party schema-driven API. This skill lives at [github.com/getdent/skill](https://github.com/getdent/skill).
+
+The person you are talking to is a course creator or a marketer. They say "put my opt-in page live", "make this the homepage", "switch the theme", "how did last month go". You own every technical step. You report back in their words: what is live, at which URL, what changed, what happens next.
+
+Never put a route, a JSON body, an id, or a status code in a reply to the operator unless they ask for it.
+
+Use Dent's words exactly: Funnel, Funnel Step, Offer, Product, Order, Cart, Checkout, Page, Article, Design, Link, Theme, Space, Course, Contact, Visitor.
 
 ## Process
 
-1. Establish the session before touching data.
+1. Open the session yourself. The operator never touches a terminal.
 
    <!-- dent:cli:start -->
-   - IF `dent` is not on PATH, run each Dent CLI command as `npx @parkerlabs/dent@latest <command>`.
-   - Run the local checks:
+   - IF `dent` is not on PATH, run each Dent CLI command as `npx @getdent/skill@latest <command>`.
+   - Run the check, then the update only when the check printed an update line, then the identity read. You run them; never hand one back to the operator.
 
      ```bash
      dent check
+     dent update   # only after `dent check` printed an update line; then `dent check` again
      dent whoami
      ```
 
-   - If the session-start check or `dent check` says the skill is stale, update the skill before a write. Use the update reference instead of asking the user to touch a terminal.
-   - If `dent whoami` fails, run `dent login`. The standalone CLI starts Dent's OAuth 2.0 Authorization Code + PKCE login against production Dent by default (`https://ondent.app`): it opens the browser, the operator signs in and clicks Authorize, the loopback callback receives the authorization code, and the CLI exchanges code + verifier before saving the token. This is the same flow an agent can guide; the agent layer does not replace the CLI.
-   - If loopback cannot reach the CLI (remote browser, web agent, locked-down machine), run `dent login --copy-code`. The operator authorizes in the browser, copies the short code Dent shows, and pastes it into the CLI. The code still exchanges only with that CLI's PKCE verifier.
-   - Never ask the operator to create a personal access token for normal login. Never put a token in argv. Explicit token input remains only for power-user recovery with `--token-prompt` or `--stdin`.
+   - `dent check` compares the installed skill and the CLI against the published package. When it prints an update line, run `dent update` and `dent check` again before any write. See `references/updating-the-skill.md`.
+   - IF `dent whoami` fails, run `dent login --no-open`. It prints the authorize URL and blocks while it waits for the browser to come back. You cannot open the operator's browser, so give them that URL in one plain line and wait for the command to return.
 
      ```bash
-     dent login
-     dent login --copy-code
+     dent login --no-open
      ```
 
-   - Use `dent setup` only when developing against a local Dent repo. It switches the CLI and skill to the local target while preserving the live credential. Use `dent reset` to switch back to the live target without re-authenticating either target.
+     Say it like this: "Open this link and click Authorize. I'll take it from there."
+   - IF the browser cannot reach this machine (a remote browser, a locked-down machine, a web agent), use the two-step copy-code login. Start it, hand over the URL, then finish it with the code the operator reads back. The code page shows the code as text that cannot be selected and has no copy button, so ask them to type it out. It works once and for five minutes.
 
-   - Use `dent logout` when the active target's stored credential should be removed.
+     ```bash
+     dent login --copy-code --start
+     dent login --copy-code --code <code>
+     ```
 
-   - Power users may set the credential variables below. `DENT_TARGET` selects `live` or `local`; `DENT_SITE_URL` and `DENT_API_KEY` each override the matching active stored credential and fall back to stored config for the other:
-
-      ```bash
-      export DENT_TARGET=live
-      export DENT_SITE_URL=https://example.com
-      export DENT_API_KEY=...
-      ```
+   - When the account has more than one Dent Site, the authorize screen asks the operator to pick one. Tell them which Site you ended up on, by its address, before you write anything.
+   - Never ask the operator to create a personal access token for normal login. Never put a token in argv, a file, a report, or a commit.
+   - `dent logout` signs this machine out. It revokes the token on Dent when Dent let the CLI see the token's id at login; otherwise it says so, and you tell the operator to revoke the token in their Dent SPA (the admin surface they log into).
+   - `dent setup` and `dent reset` switch between a local Dent repo and the live Site. Use them only when developing against a local Dent.
    <!-- dent:cli:end -->
 
    <!-- dent:web:start -->
-   - Claude web has no local CLI, so the operator must paste a Dent personal access token for this chat. That token is a sensitive bearer credential, like a password, and is needed only so this chat can call the Dent API.
-   - Use direct HTTP. Keep the token in chat memory only; never write it to a file, report, or command line.
+   - Claude web has no local CLI, so ask the operator once to paste a Dent personal access token for this chat. Say it plainly: it is a password-like key, it stays in this chat, and it is the only way this chat can reach their Dent Site.
+   - Keep the token in chat memory only. Never write it to a file, a report, or a command line.
+   - Confirm it works by reading the catalog before anything else: `GET /api/v1/schema/`.
 
      ```js
      const siteUrl = 'https://example.com';
@@ -67,273 +76,191 @@ Dent spins up marketing Sites that sell and deliver digital Products. Operate it
        return payload;
      }
      ```
+   - Claude web cannot update its own skill. IF the instructions here look older than the Site, tell the operator to upload a fresh Dent Claude-web ZIP. See `references/updating-the-skill.md`.
    <!-- dent:web:end -->
 
-2. Fetch the schema catalog first; never guess entity names, fields, actions, or routes.
+2. Read the catalog before you write. Never guess an entity, field, action, or route.
 
-   - Catalog: `GET /api/v1/schema/`.
-   - Local development target switching is owned by the CLI's `dent setup` and `dent reset`; do not hardcode local Dent URLs in the skill.
-   - Read the target entity's `fields`, `actions`, `parameters`, `mode`, `target`, and `access` before writing. The Funnel Step `status` field is in the catalog; set it through the generic step update route.
-   - Action bodies are top-level fields. Do not wrap them in `{attributes: ...}` unless the catalog parameter is literally named `attributes` and the action expects that wrapper from a non-generic endpoint. For Dent generic create/update/actions, send the fields directly.
+   - The catalog is `GET /api/v1/schema/`. Read the entity you are about to touch and confirm its `fields`, its `actions`, and each action's `mode`, `target`, and `parameters`.
+   - `fields` is a list; each entry has `key`, `type`, `readOnly`, and `config`. `parameters` is an object keyed by parameter name.
+   - Route grammar the catalog confirms: `GET /api/v1/{entities}` lists, `GET /api/v1/{entities}/{id}` reads one, `POST /api/v1/{entities}` creates, `POST /api/v1/{entities}/{id}` updates, `DELETE /api/v1/{entities}/{id}` deletes. A named action is `/{entities}/{action}` for a collection and `/{entities}/{id}/{action}` for one record. The verb comes from `mode`: `read` is GET, `write` is POST, `remote` is POST, `destroy` is DELETE.
+   - The named form of a plain create or update is not a route. `POST /api/v1/pages/{id}/update` returns 404; the update is `POST /api/v1/pages/{id}`. <!-- dent:404 -->
+   - Bodies are flat. Send `{"status": "published"}`, never `{"attributes": {"status": "published"}}`.
+   - Lists take `page`, `perPage`, `ids`, `search`, `sortBy`, `sortOrder`, and answer `{ items, total, page, pageCount }`.
+   - Funnel Steps live under their Funnel: `/api/v1/funnels/{funnelId}/steps`. Sections live under their Course: `/api/v1/courses/{courseId}/sections`. Lessons live under their Section: `/api/v1/sections/{sectionId}/lessons`. A flat `/api/v1/steps` is a 404. <!-- dent:404 -->
+   - Settings, Dent, and Account answer only named collection routes. The Settings read is `GET /api/v1/settings/get`; a bare `GET /api/v1/settings` is 404. <!-- dent:404 -->
+   - Published means `published`. The status values are `draft`, `review`, `scheduled`, `published`, `archived`. There is no `publish`.
 
    <!-- dent:cli:start -->
    ```bash
-   dent schema
-    dent schema funnels
-    dent api funnels
-    dent api courses 9203 sections
-    dent api dent breakdown --param dimension=source --param period=last_month --param includeAdmin=true --param limit=5
+   dent schema funnels
+   dent api funnels
+   dent api courses 9203 sections
+   dent api dent breakdown --param dimension=source --param period=last_month --param limit=5
    ```
 
-   `dent api` resolves HTTP methods from the tenant schema catalog for each invocation: `read` actions use `GET`, `write` and `remote` actions use `POST`, and `destroy` actions use `DELETE`. `--method` is the explicit override. Do not infer a write from positional shape; a bare nested collection like `dent api courses 9203 sections` is a list (`GET`). Creates require `--data` or an explicit method.
+   `dent api` reads the catalog once per invocation and takes the HTTP method from the action's `mode`. `dent api pages 15` and `dent api pages/15` are the same call. `--method` is the explicit override. A bare nested collection lists; a create needs `--data`.
    <!-- dent:cli:end -->
 
    <!-- dent:web:start -->
    ```js
    const catalog = await dent('/api/v1/schema/');
-   console.log(Object.keys(catalog));
    ```
    <!-- dent:web:end -->
 
-3. Use the generic route grammar the catalog confirms, and route every Page surface through interview, writing, then design.
+3. Build every Page, Article, and Funnel Step in this order: interview, then copy, then Design. Never skip ahead.
 
-   - `GET /api/v1/{entities}` lists records.
-   - `GET /api/v1/{entities}/{id}` reads one record.
-   - `POST /api/v1/{entities}` creates a record.
-   - `POST /api/v1/{entities}/{id}` updates a record.
-   - `DELETE /api/v1/{entities}/{id}` deletes when the catalog and the user intent allow it.
-   - `GET|POST|DELETE /api/v1/{entities}/{action}` invokes a collection action.
-   - `GET|POST|DELETE /api/v1/{entities}/{id}/{action}` invokes a member action.
-   - Nested creates/reads use the parent route the catalog exposes, for example:
-     - `POST /api/v1/funnels/{funnelId}/steps`
-     - `POST /api/v1/funnels/{funnelId}/steps/{stepId}`
-     - `POST /api/v1/courses/{courseId}/sections`
-     - `GET /api/v1/courses/{courseId}/sections`
-     - `GET /api/v1/courses/{courseId}/sections/{sectionId}`
-     - `POST /api/v1/sections/{sectionId}/lessons`
-     - `GET /api/v1/sections/{sectionId}/lessons`
-     - `GET /api/v1/sections/{sectionId}/lessons/{lessonId}`
-   - For any Page, Article, Funnel Step, Checkout Funnel Step, Upsell Funnel Step, or redesign, use this exact order:
-     1. FIRST establish the brief by interviewing the operator in plain language → `references/interview.md`.
-     2. THEN write the finished copy → `references/writing/copywriting.md` plus the matching writing leaf.
-     3. THEN design from the brief and finished copy → `references/design/designing.md` plus the matching design leaf.
-   - Match the leaf to the surface:
-     - Opt-in Page or lead-capture Funnel Step → `references/writing/optin-page.md` and `references/design/optin-page.md`.
-     - Sales Page or sales Funnel Step → `references/writing/sales-page.md` and `references/design/sales-page.md`.
-     - Checkout Funnel Step → `references/writing/sales-page.md` and the Checkout starter inside `references/design/sales-page.md`.
-     - Upsell Funnel Step → `references/writing/upsell-page.md` and `references/design/upsell-page.md`.
-     - Thank-you Page or Funnel Step → `references/writing/thank-you-page.md` and `references/design/thank-you-page.md`.
-     - Article or content Page → `references/writing/article.md` and `references/design/article.md`.
-   - Do not duplicate the reference content inline. Use the references to produce the brief, copy, and Designer JSON, then send the resulting Design through the API owner.
+   1. Interview the operator in plain language and write the brief → `references/interview.md`.
+   2. Write the finished copy → `references/writing/copywriting.md` plus the matching writing leaf.
+   3. Design from the brief and the finished copy → `references/design/designing.md` plus the matching design leaf.
 
-4. Build an opt-in Funnel with a thank-you Funnel Step.
+   - Opt-in Page or opt-in Funnel Step → `references/writing/optin-page.md` and `references/design/optin-page.md`.
+   - Sales Page or sales Funnel Step → `references/writing/sales-page.md` and `references/design/sales-page.md`.
+   - Checkout Funnel Step → `references/writing/sales-page.md` and the Checkout starter in `references/design/sales-page.md`.
+   - Upsell Funnel Step → `references/writing/upsell-page.md` and `references/design/upsell-page.md`.
+   - Thank-you Page or Funnel Step → `references/writing/thank-you-page.md` and `references/design/thank-you-page.md`.
+   - Article or content Page → `references/writing/article.md` and `references/design/article.md`.
 
-   - Start with the page creation sequence for both public steps:
-     - Opt-in Funnel Step → interview brief, opt-in copy, opt-in Design.
-     - Thank-you Funnel Step → interview brief, thank-you copy, thank-you Design.
-   - Create the Funnel: `POST /api/v1/funnels` with `{ "name": "Lead magnet opt-in" }`.
-   - Use `homeStepId` from the response as the opt-in Funnel Step.
-   - Create the thank-you Funnel Step: `POST /api/v1/funnels/{funnelId}/steps` with `{ "title": "Thank You" }`.
-   - Author the opt-in Design through the Funnel Step, not WordPress. Every `{{ fields.* }}` value used by a behavior must have a matching input whose `config.name` is that field.
-   - Send the opt-in Design to `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design`.
-   - Put a polished thank-you Design on the thank-you Funnel Step so the public URL is not empty.
-   - Send the thank-you Design to `POST /api/v1/funnels/{funnelId}/steps/{thankYouStepId}/replace-design`.
-   - Publish every public Funnel Step before opening `viewUrl` or submitting the form:
+   A Funnel Step is not a Page. Never call one the other. A Page renders inside the Site's page Template, so it carries the Site header navigation and footer. A Funnel Step renders inside funnel chrome with no Site navigation. An opt-in, sales, upsell, or thank-you page that must carry no navigation is a Funnel Step, never a Page.
 
-     ```json
-     {"status": "published"}
-     ```
+4. Build an opt-in Funnel.
 
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}` for the opt-in and thank-you Funnel Steps. Public URLs and public form submits require a published Funnel Step on an active Funnel.
-   - Read the Funnel Step with `GET /api/v1/funnels/{funnelId}/steps/{stepId}` after `replace-design` and publishing. Confirm `status: "published"`, `viewUrl`, `hasOptinAction: true` for an opt-in step, and `hasBuilder` before opening the public URL. `replace-design` returns the saved Design, not the Step metadata.
-   - Verify the public opt-in path with a real pageview and form submit:
-     1. `GET` the opt-in Step `viewUrl` with a cookie jar to render the form and establish the Visitor Session.
-     2. `POST /api/v1/forms/submit` with the same cookies and body `{ "owner": {"type": "step", "id": stepId}, "form": "optin-form", "fields": {"email": "visitor@example.com", "name": "Visitor Name"} }`.
-     3. Treat `success: true` and the returned `redirectUrl` as the submit proof; follow `redirectUrl` when the form redirects.
-     4. Find the captured Contact with `GET /api/v1/contacts?search=visitor@example.com`.
+   - Do the interview, copy, and Design for both public Funnel Steps first.
+   - Create the Funnel: `POST /api/v1/funnels` with `{"name": "Lead magnet opt-in"}`. Dent creates it `published` and returns `homeStepId`.
+   - The Funnel Step at `homeStepId` is the opt-in Funnel Step. Do not create a second one for it.
+   - Create the thank-you Funnel Step: `POST /api/v1/funnels/{funnelId}/steps` with `{"title": "Thank You"}`.
+   - Before each Design write, read what is there: `GET /api/v1/funnels/{funnelId}/steps/{stepId}/design` returns `{ revision, design }`.
+   - Write the Design: `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design` with `{"revision": "<the revision you just read>", "design": {...}}`. A stale `revision` returns 409. Re-read and send again.
+   - Do the same for the thank-you Funnel Step so its public URL is never empty.
+   - Publish each public Funnel Step: `POST /api/v1/funnels/{funnelId}/steps/{stepId}` with `{"status": "published"}`.
+   - Read the Funnel Step back: `GET /api/v1/funnels/{funnelId}/steps/{stepId}`. Confirm `status` and `viewUrl` before you give the operator a link.
+   - Verify the opt-in the way a real Visitor does:
+     1. `GET` the Funnel Step `viewUrl` with a cookie jar. That renders the form and starts the Visitor session.
+     2. With the same cookies, `POST /api/v1/forms/submit` with `{"owner": {"type": "step", "id": stepId}, "form": "optin-form", "fields": {"email": "visitor@example.com", "first_name": "Visitor"}}`. `form` is the `id` on the form element in the Design; each field name is a `config.name` on an input. A form on a Page submits the same way with `{"type": "page", "id": pageId}` as the owner.
+     3. `success: true` is the proof.
+     4. Find the Contact: `GET /api/v1/contacts?search=visitor@example.com`.
+   - Tell the operator: the opt-in page is live at its URL, the thank-you page is live at its URL, a test signup went through, and here is where their new Contacts land.
 
-5. Build a sales Funnel with Order bump, upsell, and thank-you Funnel Step.
+5. Build a sales Funnel.
 
-   - Start with the page creation sequence for each public step:
-     - Sales or Checkout Funnel Step → interview brief, sales/Checkout copy, sales or Checkout Design.
-     - Upsell Funnel Step → interview brief, upsell copy, upsell Design.
-     - Thank-you Funnel Step → interview brief, thank-you copy, thank-you Design.
-   - Create each Product: `POST /api/v1/products` with top-level fields such as `{ "name": "Core Course", "value": 97, "status": "publish" }`.
-   - Create each Offer: `POST /api/v1/offers` with `{ "name": "Core Offer", "price": 97, "active": true, "products": [{"productId": productId}] }`.
-   - Create the Funnel and Funnel Steps:
-     1. `POST /api/v1/funnels` for the Funnel.
-     2. `POST /api/v1/funnels/{funnelId}/steps` for Checkout.
-     3. `POST /api/v1/funnels/{funnelId}/steps` for Upsell.
-     4. `POST /api/v1/funnels/{funnelId}/steps` for Thank You.
-   - Attach the main Offer and bump to Checkout:
+   - Do the interview, copy, and Design for the Checkout, upsell, and thank-you Funnel Steps first.
+   - Create each Product: `POST /api/v1/products` with `{"name": "Core Course", "value": 97, "status": "published"}`.
+   - Create each Offer: `POST /api/v1/offers` with `{"name": "Core Offer", "price": 97, "active": true, "products": [productId]}`. `products` takes plain ids. `[{"productId": ...}]` returns a 500.
+   - Create the Funnel with `POST /api/v1/funnels`, then the Funnel Steps with `POST /api/v1/funnels/{funnelId}/steps`.
+   - Attach the Offer and the Order bump to the Checkout Funnel Step: `POST /api/v1/funnels/{funnelId}/steps/{stepId}` with `{"offers": [{"offerId": 123}], "bumps": [{"offerId": 456}]}`.
+   - Attach the upsell Offer the same way, with `{"offers": [{"offerId": upsellOfferId}]}`.
+   - Read each Design, then `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design` with the fresh `revision`.
+   - Publish each public Funnel Step with `{"status": "published"}`.
+   - Verify Checkout like a real Visitor:
+     1. `GET` the Funnel's home `viewUrl` with a cookie jar, then `GET` the Checkout Funnel Step `viewUrl` with the same jar.
+     2. In the Checkout page HTML find `dentCheckout = {...};` and read `cartId` and `j` from it.
+     3. With the same cookies, `POST /api/v1/checkout/{cartId}/submit?cart_id={cartId}&j={j}` with `{"fields": {"checkout": {"billing": {"first_name": "Test", "last_name": "Buyer", "email": "buyer@example.com"}, "payment": {"gateway": "dent_test"}, "terms": "1"}}}`. `terms` is required when the Design carries a `checkout-terms` element (the starter does); without it Dent answers `result: "failure"` and asks for the terms.
+     4. `result: "success"` with a `redirect` carrying `order=` is the proof. Read the Order: `GET /api/v1/orders/{orderId}`.
+   - Tell the operator: the checkout page is live at its URL, what it sells and for how much, that the bump and upsell are attached, and that a test purchase went through on the test gateway so no real money moved.
 
-     ```json
-     {"offers": [{"offerId": 123}], "bumps": [{"offerId": 456}]}
-     ```
+6. Make it live.
 
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{checkoutStepId}`.
-   - Attach the upsell Offer to the Upsell Funnel Step with `POST /api/v1/funnels/{funnelId}/steps/{upsellStepId}` and `{ "offers": [{"offerId": upsellOfferId}] }`.
-   - Send each finished Design to its owner:
-     - Checkout Design → `POST /api/v1/funnels/{funnelId}/steps/{checkoutStepId}/replace-design`.
-     - Upsell Design → `POST /api/v1/funnels/{funnelId}/steps/{upsellStepId}/replace-design`.
-     - Thank-you Design → `POST /api/v1/funnels/{funnelId}/steps/{thankYouStepId}/replace-design`.
-   - Publish every public Funnel Step before opening `viewUrl` or submitting Checkout:
+   - Publish anything the public must see: `{"status": "published"}` on that record's update route. Funnels and Funnel Steps are created published already.
+   - Homepage. Pick the one that matches what the operator pointed at. Body is `{}` for all three.
+     - A Page becomes the homepage: `POST /api/v1/pages/{id}/set-homepage`.
+     - A whole Funnel becomes the homepage, so its home Funnel Step answers at the root: `POST /api/v1/funnels/{funnelId}/set-homepage`.
+     - One specific Funnel Step becomes the homepage: `POST /api/v1/funnels/{funnelId}/steps/{stepId}/set-homepage`.
+   - The homepage can only move, never be switched off. The record serving the homepage cannot be deleted until the homepage moves.
+   - Theme: read the choices with `GET /api/v1/settings/theme`. It returns `theme` (the current one), `themes` (the available ones, today `atlas`, `echo`, `frame`, `glide`, `mist`, `pulse`, `spire`, with their tokens), `vocabulary`, `fonts`, and `fontFaces`. Use the `themes` it returns, never a list from memory. Describe each to the operator by what its tokens say (colors, type, radius), never by id alone. Save with `POST /api/v1/settings/save-theme` and `{"themeId": "atlas"}`.
+   - Business settings: read with `GET /api/v1/settings/get`, write with `POST /api/v1/settings/update` and flat fields such as `businessName`, `addressLine1`, `city`, `country`, `timezone`, `currency`, `email`, `phone`, `refundPolicy`, `footerLegal`.
+   - Site icon, three calls:
+     1. `POST /api/v1/media/upload-url` with `{"filename": "icon.png"}`.
+     2. PUT the file bytes to the URL it returns.
+     3. `POST /api/v1/media/process` with `{"key": "<the key from step 1>"}`, then `POST /api/v1/settings/update-icon` with `{"iconId": mediaId}`.
 
-     ```json
-     {"status": "published"}
-     ```
+7. Author Articles, Pages, Templates, and Components. Each one owns a Design.
 
-     Send it to `POST /api/v1/funnels/{funnelId}/steps/{stepId}` for the Checkout, Upsell, and Thank You Funnel Steps. Public URLs, form submits, and Checkout require a published Funnel Step on an active Funnel.
-   - Start Checkout like a real Visitor: `GET` the Checkout Funnel Step `viewUrl` first and keep the response cookies. That pageview creates the Funnel Session/Journey/Cart context. Send later `POST /api/v1/funnel/cart` mutations and Checkout submit calls with those same cookies; without the step pageview they return `401 No active funnel session`.
+   - Article: `POST /api/v1/articles` with `{"title": "...", "status": "published", "design": {"version": 1, "elements": [...]}}`. The Article carries its Design on create and answers with a `revision`. Later edits go through `GET /api/v1/articles/{id}/design` and `POST /api/v1/articles/{id}/replace-design`.
+   - Page: `POST /api/v1/pages` with `{"title": "...", "status": "published"}`, then `GET /api/v1/pages/{id}/design` and `POST /api/v1/pages/{id}/replace-design` with the `revision`. A title already in use is accepted and the Site appends `-2` to the slug, so read `viewUrl` back before you give the operator a link.
+   - Template: `POST /api/v1/templates` with `{"name": "...", "type": "single", "entityType": "page", "status": "published"}`, then the same design read and replace.
+   - Component: `POST /api/v1/components` with `{"key": "...", "name": "...", "status": "published"}`, then the same design read and replace.
+   - The Site document itself is a Design too: `GET /api/v1/settings/design` and `POST /api/v1/settings/replace-design`.
 
-6. Build a Dent-selling Funnel that delivers Dent access and triggers tenant provisioning.
+8. Change a Design that already exists.
 
-   - Start with the page creation sequence for the Dent-selling Checkout, Upsell, and Thank You Funnel Steps so the Funnel presents the Offer like a polished sales surface, not a wireframe.
-   - Provisioning is Product delivery. Configure the Product included in the sold Offer with the access grants and provisioning webhook it must deliver after purchase; do not add a separate operator API step.
-   - Create or choose the Webhook Endpoint for the provisioning webhook target. Dent signs every delivery with an HMAC secret it generates on create and returns once in the create response; capture that `secret` and verify the signature on the target. `customHeaders` is not a create field — it is not mass-assignable, so sending it in the body is silently dropped:
+   - Read it: `GET /api/v1/{entities}/{id}/design` → `{ revision, design, owner }`. The owners are pages, articles, templates, components, settings, and `funnels/{funnelId}/steps`. Send back `revision` and `design` only.
+   - Interview the operator about what must be different, rewrite the copy, then redesign, in that order.
+   - Write it back: `POST /api/v1/{entities}/{id}/replace-design` with the `revision` you just read.
+   - A 409 means someone else saved in between. Read again, reapply your change, send again. Never invent a `revision`.
+   - Open the public URL, look at what rendered, and show the operator. Repeat until they say it is right.
 
-     ```json
-     {
-       "name": "Dent Provisioning",
-       "url": "https://provisioning.example.com/dent/product-delivery",
-       "events": [],
-       "enabled": true
-     }
-     ```
+9. Set up what is sold and delivered.
 
-     Send it to `POST /api/v1/webhook-endpoints` and read `secret` from the response.
-   - Create the Dent Product with Product delivery configuration. Use `courseIds` or `spaceIds` for Dent access grants the buyer receives, and `webhooks` for the provisioning webhook payload:
+   - Course: `POST /api/v1/courses` with `{"title": "...", "slug": "...", "status": "published", "privacy": "secret"}`.
+   - Section: `POST /api/v1/courses/{courseId}/sections` with `{"title": "...", "position": 1}`. Sections publish by default.
+   - Lesson: `POST /api/v1/sections/{sectionId}/lessons` with `{"title": "...", "body": "...", "contentType": "text", "position": 1}`. Lessons publish by default.
+   - Space: `POST /api/v1/spaces` with `{"title": "...", "slug": "...", "privacy": "secret", "status": "published"}`.
+   - Product that delivers a Course or a Space: `POST /api/v1/products` with `{"name": "...", "value": 97, "status": "published", "courseIds": [courseId], "spaceIds": [spaceId]}`.
+   - Product that sells Dent itself: `"fulfillment": [{"type": "tenant", "plan": "starter", "source": "<the Funnel's name>"}]` on the Product. Plans are `starter`, `normal`, `done_for_you`. Dent provisions the Customer's Site after delivery; nothing else to call.
+   - Offer: `POST /api/v1/offers` with `{"name": "...", "price": 97, "active": true, "products": [productId]}`. Customers buy Offers; Products are what an Offer includes.
+   - Outbound webhook: `POST /api/v1/webhook-endpoints` with `{"name": "...", "url": "https://...", "sends": [], "enabled": true}`. The response carries `secret` once; give it to the operator once and never store it.
+   - Contacts come from opt-in forms and Checkout, not from you. To put an existing Contact in a Space: `POST /api/v1/spaces/{spaceId}/add-member` with `{"contact_id": contactId, "role": "member"}`. Read members with `GET /api/v1/spaces/{spaceId}/list-members`.
 
-     ```json
-     {
-       "name": "Dent Pro",
-       "value": 197,
-       "status": "publish",
-       "courseIds": [321],
-       "spaceIds": [654],
-       "webhooks": [{
-         "endpointId": 17,
-         "parameters": {
-           "email": "{{ contact.email }}",
-           "first_name": "{{ contact.firstName }}",
-           "last_name": "{{ contact.lastName }}",
-           "plan": "pro",
-           "order_id": "{{ order.id }}",
-           "source": "dent-selling-funnel",
-           "slug": "buyer-tenant-slug",
-           "name": "Buyer Tenant"
-         }
-       }]
-     }
-     ```
+10. Answer "how did last month go".
 
-     Send it to `POST /api/v1/products`.
-   - Create the Offer for that Product, then build Checkout, Upsell, and Thank You Funnel Steps exactly as in step 5.
-   - Publish every public Funnel Step exactly as in step 5 before opening `viewUrl`, changing the Cart, or submitting Checkout.
-   - Before Cart or Checkout API calls, `GET` the Checkout Funnel Step `viewUrl` with a cookie jar and reuse those cookies for `POST /api/v1/funnel/cart` and Checkout submit calls.
-   - A TestGateway purchase of the Offer creates the Order, runs Product delivery, grants the configured Course or Space access, posts `product.delivery` to the configured provisioning webhook, and records the Webhook Delivery response. Treat tenant creation as the provisioning webhook's downstream effect, not as a separate operator API step in this skill.
+    - Traffic and source breakdowns: `GET /api/v1/dent/breakdown` with `dimension` and `period`. Dimensions are `source`, `referrer`, `campaign`, `country`, `region`, `city`, `device`, `browser`, `entry_pages`. `period` defaults to `last_30_days`.
+    - Revenue: `GET /api/v1/orders/revenue-by-date`, `GET /api/v1/orders/revenue-by-product`, `GET /api/v1/orders/revenue-by-source`, `GET /api/v1/orders/revenue-by-campaign`.
+    - Report the answer in money, people, and names. "Last month you made $4,120 from 38 orders. Most of it came from the newsletter." Not a table of ids.
 
-7. Create Articles and Pages as Designables.
+    <!-- dent:cli:start -->
+    ```bash
+    dent api dent breakdown --param dimension=source --param period=last_month --param limit=5
+    dent api orders revenue-by-source --param period=last_month
+    ```
+    <!-- dent:cli:end -->
 
-   - Start with the page creation sequence before writing the `design` field or calling `replace-design`:
-     - Article or content Page → interview brief, Article/content copy, Article/content Design.
-     - Opt-in Page → interview brief, opt-in copy, opt-in Design.
-     - Sales Page → interview brief, sales copy, sales Design.
-     - Thank-you Page → interview brief, thank-you copy, thank-you Design.
-   - Article: `POST /api/v1/articles` with top-level `{ "title", "status", "excerpt", "slug", "design" }`. Dent renders the Article content from the Design.
-   - Page: `POST /api/v1/pages` with `{ "title", "status", "slug" }`, then `POST /api/v1/pages/{pageId}/replace-design` with `{ "design": {"version": 1, "elements": [...] } }`.
-   - Read the saved Design with `GET /api/v1/pages/{pageId}/design` or `GET /api/v1/articles/{articleId}`.
-   - A Funnel Step is not a Page. Never call a Funnel Step a Page.
+11. Stay correct.
 
-8. Iterate on Funnel Step Design until the operator approves.
+    - Use Dent's words exactly. Never say Product when you mean Offer. Never say Page when you mean Funnel Step.
+    - Read after every write. Read the record back before you tell the operator it is done, and open the public URL before you hand it over.
+    - When Dent returns an error, read its status and its body and fix the cause. Never retry with a guess, never invent a fallback, never report success you did not read back.
+    - A `422` on publish or on `replace-design` means the Design failed validation and nothing was saved. Fix the Design, not the status. Every form needs a non-empty unique `id`, a `form-submit` child, and uniquely named fields; an `optin` behavior needs `config.email`.
+    - Never use WordPress routes: no `/wp/wp-login.php`, no admin-ajax, no Bricks save routes, no WordPress REST. Needing one is a first-party gap to report, not a path to take.
+    - Never put a bearer token in argv, a project file, a report, or a commit.
 
-   - Read the current Design: `GET /api/v1/funnels/{funnelId}/steps/{stepId}/design`.
-   - Re-establish or update the brief by interviewing the operator in plain language about what the current Step must do differently.
-   - Rewrite or confirm the finished copy through `references/writing/copywriting.md` and the matching writing leaf before changing layout.
-   - Redesign from the updated brief and finished copy through `references/design/designing.md` and the matching design leaf.
-   - Replace it: `POST /api/v1/funnels/{funnelId}/steps/{stepId}/replace-design` with `{ "design": ... }`.
-   - If the operator will inspect the public `viewUrl`, publish the Funnel Step first with `POST /api/v1/funnels/{funnelId}/steps/{stepId}` and `{ "status": "published" }`.
-   - Read the Funnel Step: `GET /api/v1/funnels/{funnelId}/steps/{stepId}`.
-   - Open or refresh `viewUrl`, inspect the rendered Site result, then repeat. If a render needs WordPress-only admin routes, stop and report the gap instead of using them.
+12. Report to the operator in their words.
 
-9. Create Components and Templates.
+    - Every reply answers three things, in this order: what is live now, where it is, and what is next.
+    - Use the names they use. "Your free checklist page is live at yoursite.com/checklist. Signups land in your Contacts. Next: point your homepage at it, or build the paid offer."
+    - Name money, page names, and URLs. Never a route, a JSON body, a record id, or a status code, unless the operator asks for it.
+    - When something failed, say what did not work and what you are doing about it, in one plain line. Never paste an error at them.
+    - When you need a Decision only they can make (a price, a promise, a name, which page is the homepage), ask one short question and stop.
 
-   - Template create works first-party: `POST /api/v1/templates` with `{ "name", "type": "single", "entityType": "page", "status": "publish", "design" }`.
-   - Read Template Design with `GET /api/v1/templates/{templateId}/design`.
-   - Component create works first-party: `POST /api/v1/components` with `{ "key", "name", "status": "publish", "design" }`.
-   - Component Design uses variants:
+## Routes and auth
 
-     ```json
-     {
-       "design": {
-         "version": 1,
-         "defaultVariant": "base",
-         "properties": [],
-         "slots": [],
-         "variants": [{
-           "key": "base",
-           "name": "Base",
-           "elements": [{"key": "component-root", "type": "section", "children": []}]
-         }]
-       }
-     }
-     ```
+Everything the Process above does not already call.
 
-   - Read Component Design with `GET /api/v1/components/{componentId}/design`.
-   - Replace Component Design with `POST /api/v1/components/{componentId}/replace-design`.
-
-10. Query Analytics and break down revenue.
-
-   - Use `GET /api/v1/dent/breakdown?dimension=source&period=last_month&includeAdmin=true&limit=5` for breakdowns.
-   - Use `GET /api/v1/orders/revenue-by-source?period=last_month&attribution=first_touch` for source revenue.
-   - `breakdown` accepts `dimension`. Available dimensions: `source`, `referrer`, `campaign`, `country`, `region`, `city`, `device`, `browser`, `entry_pages`.
-   - In the CLI variant, pass catalog action parameters as query parameters:
-
-     ```bash
-     dent api dent breakdown --param dimension=source --param period=last_month --param includeAdmin=true --param limit=5
-     ```
-
-11. Set up selling: Products, Offers, Courses, Spaces.
-
-   - Course: `POST /api/v1/courses` with `{ "title", "slug", "description", "status": "published", "privacy": "secret" }`.
-   - Product that grants a Course: `POST /api/v1/products` with `{ "name", "value", "status": "publish", "courseIds": [courseId] }`.
-   - Product that grants a Space: use `spaceIds: [spaceId]`.
-   - Offer: `POST /api/v1/offers` with `{ "name", "price", "active": true, "products": [{"productId": productId}] }`.
-   - Users buy Offers. Products are what Offers include.
-
-12. Add Course content and manage Spaces.
-
-   - Section: `POST /api/v1/courses/{courseId}/sections` with `{ "title", "position" }`. Sections publish by default; `status` is not a create field, so do not send it.
-   - Read ordered Course Sections with `GET /api/v1/courses/{courseId}/sections`.
-   - Lesson: `POST /api/v1/sections/{sectionId}/lessons` with `{ "title", "body", "position", "status": "published", "contentType": "text" }`.
-   - Read ordered Section Lessons with `GET /api/v1/sections/{sectionId}/lessons`.
-   - Space: `POST /api/v1/spaces` with `{ "title", "slug", "privacy": "secret", "status": "published" }`.
-   - Contacts are created by identify flows such as opt-in forms and Checkout email capture; Accounts do not author Contacts directly.
-   - Add an existing Contact to a Space: `POST /api/v1/spaces/{spaceId}/add-member` with `{ "contact_id": contactId, "role": "member" }`.
-   - Read Space members: `GET /api/v1/spaces/{spaceId}/list-members`.
-
-13. Preserve correctness while operating.
-
-   - Use Dent's words exactly; never write Product when the object is an Offer, never write Page when the object is a Funnel Step.
-   - Prefer small read-after-write checks and include exact ids changed in your answer.
-   - Publishing a Funnel Step or Page (`{"status": "published"}`), or `replace-design` on one already published, validates the Design at the persistence chokepoint. If publish validation fails — invalid expression syntax, incomplete forms, or unresolved script or branch references — Dent returns `422` with element-keyed messages and does not persist. Fix the Design, not the status call. A draft save keeps its warnings and always persists.
-   - Show Dent's error status and body. Do not invent fallbacks.
-   - Do not use `/wp/wp-login.php`, WordPress admin-ajax, Bricks save routes, or WordPress REST routes for these workflows. A need for those routes is a first-party API gap to report.
-   - Never place a bearer token in argv, a project file, a report, or a commit.
+- Auth is bearer on every request: `Authorization: Bearer <credential>` and `Accept: application/json`. A Dent token starts with `dent_`, expires 365 days after it is minted, and answers 401 after that.
+- `GET /platform/api/v1/tokens` lists the account's tokens and `DELETE /platform/api/v1/tokens/{id}` revokes one, on the platform origin, not the Site. Under a CLI token the list carries no ids and `GET /platform/api/v1/tokens/identity` answers an error, so the operator revokes it in the Dent SPA.
+- `GET /api/v1/account/details` reads the Account. `DELETE /api/v1/settings/reset-theme` clears theme overrides.
+- `GET /api/v1/orders/attributed-revenue` reads revenue by attribution.
+- The Cart routes serve the Visitor and need the Visitor session cookies from a `GET` of the public URL first:
+   - `GET /api/v1/cart` reads the Cart, and answers 404 when there is none. <!-- dent:404 -->
+  - `POST /api/v1/cart` takes `{"action": "add_offer|remove_offer|update_billing", "offer_id": ..., "price": ..., "billing": {...}}`.
+  - `POST /api/v1/cart/checkout` takes `{"billing": {"email": "..."}, "gateway": "dent_test", "note": "..."}`.
+  - `GET|POST /api/v1/funnel/cart` is the funnel-bound Cart. It needs `step_id` and the Visitor session from a Funnel Step pageview.
+  - `POST /api/v1/checkout/{cart}/refresh` re-prices a Cart mid-Checkout.
+- A one-click upsell answers `POST /api/v1/offers/{offer}/accept` and `POST /api/v1/offers/{offer}/decline` with `{"order_id": orderId, "step_id": stepId}`. Funnel Step Designs bind `{{ offer.acceptUrl }}` on a button.
+- `dent_test` is the test gateway. It moves no real money.
 
 ## References (each solves one problem)
 
 - The installed Dent skill is stale → references/updating-the-skill.md
-- Checking Dent API route grammar and auth details → references/api.md
+- Resolving a Dent call the Process does not show, or an error Dent returned → references/api.md
 - Establishing the Page, Article, or Funnel Step brief in operator language → references/interview.md
 - Writing Page, Article, and Funnel Step copy before design → references/writing/copywriting.md
-- Writing opt-in Page or lead-capture Funnel Step copy → references/writing/optin-page.md
+- Writing opt-in Page or opt-in Funnel Step copy → references/writing/optin-page.md
 - Writing sales Page, sales Funnel Step, or Checkout copy → references/writing/sales-page.md
 - Writing one-click upsell Funnel Step copy → references/writing/upsell-page.md
 - Writing thank-you Page or confirmation Funnel Step copy → references/writing/thank-you-page.md
 - Writing Article or content Page copy → references/writing/article.md
 - Designing Page, Article, and Funnel Step visuals after copy → references/design/designing.md
-- Designing opt-in Page or lead-capture Funnel Step visuals → references/design/optin-page.md
+- Designing opt-in Page or opt-in Funnel Step visuals → references/design/optin-page.md
 - Designing sales Page, sales Funnel Step, or Checkout visuals → references/design/sales-page.md
 - Designing one-click upsell Funnel Step visuals → references/design/upsell-page.md
 - Designing thank-you Page or confirmation Funnel Step visuals → references/design/thank-you-page.md

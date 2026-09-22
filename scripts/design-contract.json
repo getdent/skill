@@ -1,0 +1,10 @@
+{
+  "why": "Dent's schema catalog has no element or behavior entity, so the Design vocabulary is hand-kept here. When the catalog describes it, snapshot-catalog.js generates this file and nothing else changes.",
+  "keyPattern": "^[a-z0-9][a-z0-9_-]*$",
+  "elementKeys": ["key", "type", "tag", "id", "styles", "utilities", "attributes", "text", "content", "config", "behaviors", "children"],
+  "componentKeys": ["component", "variant", "properties", "slots"],
+  "documentKeys": ["version", "elements", "stylesheets", "scripts"],
+  "elementTypes": ["accordion", "accordion-item", "block", "button", "calculation", "checkbox", "checkout", "checkout-bump", "checkout-express-payment", "checkout-offer", "checkout-payment", "checkout-price", "checkout-product", "checkout-submit", "checkout-summary", "checkout-terms", "checkout-timer", "code", "component", "container", "countdown", "country-select", "divider", "embed", "form", "form-submit", "heading", "heading-outline", "icon", "image", "list", "list-item", "media-player", "menu", "pagination", "popup", "projects-layout", "quote", "radio", "raw-html", "repeater", "screen", "script", "section", "select", "share", "slider", "slot", "state-select", "svg", "tab", "tabs", "text", "text-input", "textarea", "variant"],
+  "inputKinds": ["text", "name", "email", "tel", "url", "number", "password"],
+  "behaviors": {"branch":{"inputs":["answer","routes","fallback"],"required":["routes"]},"checkout":{"inputs":["billing","gateway","note"],"required":["gateway"]},"interaction":{"inputs":["action","target"],"required":["target"]},"invoke-action":{"inputs":["action","row","refresh"],"required":["action"]},"lightbox":{"inputs":["items","label"],"required":[]},"optin":{"inputs":["email","name","event"],"required":["email"]},"send-login-code":{"inputs":["email","redirect"],"required":["email"]},"sign-out":{"inputs":[],"required":[]},"unlock-link":{"inputs":["link","target","password"],"required":["link"]},"validate-email":{"inputs":["email","blockDisposable","blockRoles"],"required":["email"]},"verify-login-code":{"inputs":["email","code"],"required":["email","code"]}}
+}

@@ -6,6 +6,7 @@ node_modules/
 .dent.local.json
 *.tgz
 .tracer-cache/
+.agents/skills/
 
 # internal build evidence — not part of the published package
 docs/agents/

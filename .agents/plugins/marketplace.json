@@ -1,0 +1,21 @@
+{
+  "name": "getdent",
+  "version": "0.2.0",
+  "interface": {
+    "displayName": "Dent"
+  },
+  "plugins": [
+    {
+      "name": "dent",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/getdent/skill.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Marketing",
+      "version": "0.2.0"
+    }
+  ]
+}

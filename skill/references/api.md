@@ -1,54 +1,52 @@
-# Dent API reference
+# Resolve and verify a Dent call
 
-Dent is schema-driven. The catalog is the contract for entity names, fields, relations, actions, access, and request parameters.
+Use this when an operation has no worked example in the Dent Process, or when a call came back with an error. The route grammar, the singleton and nested forms, the public Visitor routes, and the auth facts are in the Dent skill itself.
 
-## Catalogs
+## 1. Find the action in the catalog
 
-- Tenant catalog: `GET /api/v1/schema/`
+Read `GET /api/v1/schema/` and find the entity by its `route`.
 
-Fetch the catalog before writes. Confirm the entity's fields and action parameters there; for example, Funnel Step `status` is a catalog field and is updated through the generic step update route.
+- The entity's `fields` say what you may send. A field with `readOnly: true` is refused.
+- The entity's `actions` say what it can do. Each action names its `target`, its `mode`, and its `parameters`.
 
-## Tenant route grammar
+IF no action matches the operation:
+### Report the gap
+Tell the operator the operation is not in the first-party API. Do not use WordPress routes, and do not invent a route from the pattern of another entity.
 
-- `GET /api/v1/{entities}` lists records.
-- `GET /api/v1/{entities}/{id}` reads one record.
-- `POST /api/v1/{entities}` creates one record.
-- `POST /api/v1/{entities}/{id}` updates one record.
-- `DELETE /api/v1/{entities}/{id}` deletes one record when allowed.
-- `GET|POST|DELETE /api/v1/{entities}/{action}` invokes a collection action.
-- `GET|POST|DELETE /api/v1/{entities}/{id}/{action}` invokes a member action.
-- Nested routes keep the parent in the path, for example `/api/v1/funnels/{funnelId}/steps`, `/api/v1/courses/{courseId}/sections`, and `/api/v1/sections/{sectionId}/lessons`.
+## 2. Derive the request from the action
 
-## Public Funnel requests
+The verb comes from `mode`, and the shape of the path comes from `target`.
 
-- Publish public Funnel Steps before opening `viewUrl`, submitting forms, changing the Cart, or submitting Checkout.
-- Publishing a Step or Page, or `replace-design` on one already published, validates the Design and returns `422` with element-keyed messages if publish validation fails (expression syntax, form completeness, script/branch references). Nothing persists on failure. Draft saves keep warnings and always persist.
-- `replace-design` returns Design data, not Step metadata. Read the Step after publishing to confirm `status`, `viewUrl`, and derived flags such as `hasOptinAction` and `hasBuilder`.
-- Public form submit path: `GET` the Step `viewUrl` with cookies, then `POST /api/v1/forms/submit` with `{ "owner": {"type": "step", "id": stepId}, "form": "form-key", "fields": {...} }` using those cookies.
-- Find a captured Contact with `GET /api/v1/contacts?search=<email>`.
+- A `collection` action sits at `/api/v1/{route}/{action}`, and a `member` action sits at `/api/v1/{route}/{id}/{action}`.
+- A nested entity keeps its parent in the path, and a singleton has no bare list or id form.
+- A write sends its parameters as a flat body, and a read sends them as query parameters.
 
-## Analytics dimensions
+## 3. Send it and read the answer back
 
-`GET /api/v1/dent/breakdown` accepts `dimension`: `source`, `referrer`, `campaign`, `country`, `region`, `city`, `device`, `browser`, `entry_pages`.
+### Confirm a write with a second read
+Read the record again with its get route and confirm the field you changed. Open the public URL for anything the public sees.
+Never: report a write as done from the write response alone.
 
-<!-- dent:cli:start -->
-`dent api` fetches the tenant catalog once per invocation and resolves the HTTP method from the catalog action mode: `read` → `GET`, `write`/`remote` → `POST`, and `destroy` → `DELETE`. `--method` is the explicit override. Bare collection and nested-collection forms list by default; pass `--data` or an explicit method to create.
-<!-- dent:cli:end -->
+## 4. Fix the error Dent returned
 
-## Auth
+Each status names its own cause, and none of them is a reason to send the same call again.
 
-Every direct HTTP request uses bearer auth:
+IF the status is `401`:
+### Re-authenticate
+The credential is missing or expired. Get a fresh one through the login path for this harness. Never pass a token as a command-line argument.
 
-```http
-Authorization: Bearer <Dent bearer credential>
-Accept: application/json
-```
+IF the status is `404 Action not found`:
+### Rebuild the path from the grammar
+The path is not in the grammar. The usual causes are a named form of a plain create or update, a flat route for a nested entity, and a bare list on a singleton.
 
-<!-- dent:cli:start -->
-For CLI users, `dent login` starts the OAuth browser flow by default, then verifies the returned credential against the active Dent Site before saving it. Token prompt and stdin login are recovery paths only. Never pass tokens as command-line arguments.
+IF the status is `409`:
+### Read the Design again and reapply
+The `revision` you sent is stale because another writer saved in between. Read the Design, apply your change to what came back, and send it again with the fresh `revision`.
 
-`dent logout` removes the active target's stored credential.
-<!-- dent:cli:end -->
-<!-- dent:web:start -->
-For Claude web, the user provides the bearer token for this chat. Never write the token to a file.
-<!-- dent:web:end -->
+IF the status is `422`:
+### Fix what validation named
+The write was refused and nothing saved. Read the element-keyed messages and fix the Design or the field they name. Never change the status to get around it.
+
+IF the status is `500` on a relation:
+### Send plain ids
+A relation list takes plain ids, not objects wrapping an id.

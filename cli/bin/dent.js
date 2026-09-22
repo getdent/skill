@@ -3,7 +3,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, chmodSync, cpSync, renameSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, chmodSync, renameSync, unlinkSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { dirname, join, resolve, relative } from 'node:path';
 import { emitKeypressEvents } from 'node:readline';
@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const skillName = 'dent';
+const pluginName = 'dent';
+const marketplaceName = 'getdent';
 const liveTargetName = 'live';
 const localTargetName = 'local';
 const providerConfig = JSON.parse(readFileSync(join(packageRoot, 'providers.json'), 'utf8'));
@@ -38,8 +40,11 @@ Usage:
 
 Commands:
   install                 Install the Dent skill into a provider harness or target folder
-  update                  Refresh installed Dent skill files from this package
-  check                   Check installed skill version and print update guidance
+  update [--skip-upgrade] Refresh installed Dent skill files from this package
+  check [--quiet] [--plugin-root <path>]
+                          Check installed skill and CLI versions and print update guidance
+  plugin-path             Print the plugin directory; once a day, fetch a newer release first
+  skill [reference]       Print the Dent skill, or one of its references (references/<path>)
   login                   Verify and store a Dent API credential
   logout                  Remove the stored Dent credential for the active target
   setup                   Point this checkout at a local Dent repo target
@@ -61,7 +66,9 @@ Install options:
 
 Login options:
   --site-url <url>        Dent Site URL for the active target
-  --copy-code             Use the browser copy-code fallback instead of loopback
+  --copy-code --start     Start browser copy-code login and save the pending exchange
+  --copy-code --code <code>
+                          Complete browser copy-code login with a typed code
   --stdin-code            Read the browser copy-code from standard input
   --no-open               Print the authorize URL without opening the browser
   --token-prompt          Prompt for a personal access token
@@ -80,7 +87,8 @@ Environment:
 Examples:
   dent install
   dent login
-  dent login --copy-code
+  dent login --no-open
+  dent login --copy-code --start
   dent setup
   dent reset
   echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com --stdin
@@ -436,6 +444,7 @@ function oauthRequest(redirectUri, state, verifier) {
     redirect_uri: redirectUri,
     code_challenge: createCodeChallenge(verifier),
     code_challenge_method: 'S256',
+    scope: '*:own',
     state,
   };
 }
@@ -569,13 +578,15 @@ function waitForLoopbackCode(server) {
   });
 }
 
-function saveCredential(targetName, siteUrl, apiKey) {
+function saveCredential(targetName, siteUrl, platformUrl, apiKey, tokenId) {
   const file = updateStoredConfig(next => {
     next.activeTarget = targetName;
     next.targets[targetName] = {
       ...(next.targets[targetName] || {}),
       siteUrl,
+      platformUrl,
       apiKey,
+      ...(tokenId ? { tokenId } : {}),
       savedAt: new Date().toISOString(),
     };
     return next;
@@ -584,60 +595,97 @@ function saveCredential(targetName, siteUrl, apiKey) {
   console.log(`Config: ${file}`);
 }
 
+async function tokenIdForCredential(platformUrl, apiKey) {
+  try {
+    const body = await apiRequestWithCredentials({ source: 'login token lookup', targetName: 'login', siteUrl: platformUrl, apiKey }, '/platform/api/v1/tokens');
+    const tokens = body.body?.items || body.body?.data || body.body || [];
+    const matches = Array.isArray(tokens) ? tokens.filter(token => token.name === 'Dent CLI') : [];
+    const newest = matches.sort((left, right) => String(right.createdAt || right.created_at || '').localeCompare(String(left.createdAt || left.created_at || '')))[0];
+    if (newest?.id) return newest.id;
+  } catch (error) {
+    console.log(`Token id unavailable; dent logout will not revoke this token on Dent. Revoke it in Dent if needed: ${error.message}`);
+    return null;
+  }
+  console.log('Token id unavailable; dent logout will not revoke this token on Dent. Revoke it in Dent if needed.');
+  return null;
+}
+
 async function loginWithToken(options, targetName, siteUrl) {
   const apiKey = options.stdin
     ? (await readStdin()).trim()
     : await askHidden('Personal access token: ');
   if (!apiKey) throw new Error('Personal access token is required.');
   await verifyCredential(siteUrl, apiKey);
-  saveCredential(targetName, siteUrl, apiKey);
+  saveCredential(targetName, siteUrl, siteUrl, apiKey);
 }
 
 async function oauthLogin(options, targetName, siteUrl) {
   const verifier = createCodeVerifier();
   const state = createState();
-  let server;
-  let redirectUri;
-
-  if (options['copy-code']) {
-    redirectUri = new URL('/platform/cli/code', siteUrl).toString();
-  } else {
-    const loopback = await createLoopbackServer(state);
-    server = loopback.server;
-    redirectUri = loopback.redirectUri;
-  }
+  const loopback = await createLoopbackServer(state);
+  const server = loopback.server;
+  const redirectUri = loopback.redirectUri;
 
   const request = oauthRequest(redirectUri, state, verifier);
   const authorization = await createCliAuthorization(siteUrl, request);
   const authorizeUrl = authorization.authorizeUrl;
 
-  console.log('Opening Dent in your browser...');
   console.log(`Authorize URL: ${authorizeUrl}`);
-  if (!options['copy-code']) console.log(`Loopback callback: ${redirectUri}`);
-  if (!openBrowser(authorizeUrl, options)) {
+  console.log(`Loopback callback: ${redirectUri}`);
+  if (openBrowser(authorizeUrl, options)) {
+    console.log('Opening Dent in your browser...');
+  } else {
     console.log('Open the authorize URL above in your browser.');
   }
 
-  let code;
-  if (options['copy-code']) {
-    if (options['stdin-code']) {
-      code = (await readStdin()).trim();
-    } else if (options.code) {
-      code = String(options.code).trim();
-    } else {
-      if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error('Authorization code is required. Pass --stdin-code for piped copy-code login.');
-      code = await askLine('Paste the authorization code from Dent: ');
-    }
-  } else {
-    console.log(`Waiting for browser callback on ${redirectUri}`);
-    code = await waitForLoopbackCode(server);
-    console.log('Browser callback received.');
-  }
+  console.log(`Waiting for browser callback on ${redirectUri}`);
+  const code = await waitForLoopbackCode(server);
+  console.log('Browser callback received.');
 
   const token = await exchangeCliAuthorization(siteUrl, code, redirectUri, verifier);
   const storedSiteUrl = normalizeBaseUrl(token.siteUrl || siteUrl);
-  await verifyCredential(storedSiteUrl, token.token);
-  saveCredential(targetName, storedSiteUrl, token.token);
+  saveCredential(targetName, storedSiteUrl, siteUrl, token.token, await tokenIdForCredential(siteUrl, token.token));
+  try {
+    await verifyCredential(storedSiteUrl, token.token);
+  } catch (error) {
+    console.log(`Saved the credential, but the Site did not answer the catalog read: ${error.message}. Run dent whoami to retry.`);
+    return;
+  }
+  console.log('Dent login complete.');
+}
+
+async function startCopyCodeLogin(targetName, siteUrl) {
+  const verifier = createCodeVerifier();
+  const state = createState();
+  const redirectUri = new URL('/platform/cli/code', siteUrl).toString();
+  const authorization = await createCliAuthorization(siteUrl, oauthRequest(redirectUri, state, verifier));
+  updateStoredConfig(config => {
+    config.pendingLogin = { verifier, redirectUri, siteUrl, platformUrl: siteUrl, targetName, startedAt: new Date().toISOString() };
+    return config;
+  });
+  console.log(`Authorize URL: ${authorization.authorizeUrl}`);
+  console.log('Open this link, click Authorize, then read me the code on the page. It cannot be copied, so type it. It works once and for five minutes.');
+}
+
+async function completeCopyCodeLogin(options, targetName, siteUrl) {
+  const config = readStoredConfig() || createEmptyConfig();
+  const pending = config.pendingLogin;
+  if (!pending) throw new Error('No pending copy-code login. Run `dent login --copy-code --start` first.');
+  if (Date.now() - new Date(pending.startedAt).getTime() > 300000) throw new Error('The pending copy-code login expired after 300 seconds. Run `dent login --copy-code --start` again.');
+  const code = options['stdin-code'] ? (await readStdin()).trim() : options.code ? String(options.code).trim() : await askLine('Type the authorization code from Dent: ');
+  if (!code) throw new Error('Authorization code is required.');
+  const platformUrl = pending.platformUrl || pending.siteUrl;
+  const token = await exchangeCliAuthorization(platformUrl, code, pending.redirectUri, pending.verifier);
+  const storedSiteUrl = normalizeBaseUrl(token.siteUrl || platformUrl);
+  const tokenId = await tokenIdForCredential(platformUrl, token.token);
+  saveCredential(pending.targetName || targetName, storedSiteUrl, platformUrl, token.token, tokenId);
+  updateStoredConfig(next => { delete next.pendingLogin; return next; });
+  try {
+    await verifyCredential(storedSiteUrl, token.token);
+  } catch (error) {
+    console.log(`Saved the credential, but the Site did not answer the catalog read: ${error.message}. Run dent whoami to retry.`);
+    return;
+  }
   console.log('Dent login complete.');
 }
 
@@ -652,6 +700,8 @@ async function login(options) {
   }
   const siteUrl = normalizeBaseUrl(siteUrlInput);
   if (options.stdin || options['token-prompt']) return loginWithToken(options, targetName, siteUrl);
+  if (options['copy-code'] && options.start) return startCopyCodeLogin(targetName, siteUrl);
+  if (options['copy-code']) return completeCopyCodeLogin(options, targetName, siteUrl);
   return oauthLogin(options, targetName, siteUrl);
 }
 
@@ -659,10 +709,21 @@ async function logout() {
   const file = configFilePath();
   const config = readStoredConfig();
   const targetName = activeTargetName(config);
-  if (config?.targets?.[targetName]) {
+  const credential = config?.targets?.[targetName];
+  if (credential) {
+    let revokeError;
+    if (credential.tokenId) {
+      try {
+        await apiRequestWithCredentials({ source: 'stored config', targetName, siteUrl: credential.platformUrl || credential.siteUrl, apiKey: credential.apiKey }, `/platform/api/v1/tokens/${credential.tokenId}`, { method: 'DELETE' });
+      } catch (error) {
+        revokeError = error;
+      }
+    }
     delete config.targets[targetName];
     writeStoredConfig(config);
     console.log(`Removed Dent ${targetName} credential from ${file}`);
+    if (!credential.tokenId) console.log('Stored credential has no token id; revoke it in Dent if needed.');
+    if (revokeError) console.log(`Could not revoke Dent token ${credential.tokenId}; revoke it in Dent. ${revokeError.message}`);
   } else {
     console.log(`No stored Dent ${targetName} credential found.`);
   }
@@ -724,7 +785,7 @@ function describeCredentialSources(credential) {
   };
 }
 
-function accountProfileSummary(body) {
+function accountSummary(body) {
   const profile = body?.data || body || {};
   const name = profile.name || [profile.first_name, profile.last_name].filter(Boolean).join(' ');
   const email = profile.email;
@@ -770,9 +831,9 @@ async function status() {
   console.log(`API:         reachable — schema catalog OK (${entityCount} entities)`);
 
   try {
-    const call = resolveApiCall(catalog, ['account', 'profile'], false);
+    const call = resolveApiCall(catalog, ['account', 'details'], false);
     const result = await apiRequest(`/api/v1/${call.pathSegments.map(encodeSegment).join('/')}`, { method: methodForAction(call.action) });
-    console.log(`Account:     ${accountProfileSummary(result.body)}`);
+    console.log(`Account:     ${accountSummary(result.body)}`);
   } catch (error) {
     console.log(`Account:     unavailable — ${error.message}`);
   }
@@ -785,7 +846,7 @@ async function whoami() {
     ? catalog.entities.length
     : Object.keys(catalog.entities || catalog || {}).length;
   const credentials = loadCredentials();
-  console.log(`Authenticated with ${result.credentialSource} (${credentials.targetName} target).`);
+  console.log(`Authenticated with ${result.credentialSource} (${credentials.targetName} target) on ${credentials.siteUrl}.`);
   console.log(`Schema catalog reachable (${entities} entities).`);
 }
 
@@ -866,7 +927,7 @@ async function loadSchemaCatalog() {
 }
 
 function catalogEntities(catalog) {
-  return catalog.entities || catalog || {};
+  return catalog.entities || catalog.catalog || catalog || {};
 }
 
 function catalogEntity(catalog, entity) {
@@ -934,66 +995,49 @@ function isNumericSegment(value) {
 }
 
 function resolveApiCall(catalog, segments, hasData) {
-  const [entitySegment, second, third, fourth, fifth] = segments;
-  const entity = catalogEntity(catalog, entitySegment);
-  if (!entity) throw new Error(`Entity not found in schema catalog: ${entitySegment}`);
-  const entityRoute = routeSegmentForEntity(entity, entitySegment);
-
-  if (segments.length === 1) {
-    return apiCall(actionForCrud(entity, hasData ? 'create' : 'list'), [entityRoute]);
-  }
-
-  const collectionAction = actionByNameAndTarget(entity, second, 'collection');
-  if (segments.length === 2 && collectionAction) {
-    return apiCall(collectionAction, isCrudAction(collectionAction) ? [entityRoute] : [entityRoute, second]);
-  }
-
-  if (segments.length === 2) {
-    return apiCall(actionForCrud(entity, hasData ? 'update' : 'get'), [entityRoute, second]);
-  }
-
-  const memberAction = actionByNameAndTarget(entity, third, 'member');
-  if (segments.length === 3 && memberAction) {
-    return apiCall(memberAction, isCrudAction(memberAction) ? [entityRoute, second] : [entityRoute, second, third]);
-  }
-
-  const nestedEntity = catalogEntity(catalog, third);
-  const nestedRoute = nestedEntity ? routeSegmentForEntity(nestedEntity, third) : third;
-  if (segments.length === 3 && nestedEntity) {
-    return apiCall(actionForCrud(nestedEntity, hasData ? 'create' : 'list'), [entityRoute, second, nestedRoute]);
-  }
-
-  if (segments.length === 3 && collectionAction && isNumericSegment(third)) {
-    return apiCall(collectionAction, isCrudAction(collectionAction) ? [entityRoute] : [entityRoute, second, third]);
-  }
-
-  if (segments.length === 4 && nestedEntity) {
-    const nestedCollectionAction = actionByNameAndTarget(nestedEntity, fourth, 'collection');
-    if (nestedCollectionAction) {
-      return apiCall(nestedCollectionAction, isCrudAction(nestedCollectionAction) ? [entityRoute, second, nestedRoute] : [entityRoute, second, nestedRoute, fourth]);
+  const entity = catalogEntity(catalog, segments[0]);
+  if (!entity) throw new Error(`Entity not found in schema catalog: ${segments[0]}`);
+  const pathSegments = [routeSegmentForEntity(entity, segments[0])];
+  let current = entity;
+  let index = 1;
+  if (index === segments.length) {
+    if (!hasData && (catalog.grammar?.singletons || ['settings', 'dent', 'account']).includes(current.entity)) {
+      const get = actionByNameAndTarget(current, 'get', 'collection') || actionByName(current, 'get');
+      if (get) return apiCall(get, [...pathSegments, 'get']);
     }
-
-    return apiCall(actionForCrud(nestedEntity, hasData ? 'update' : 'get'), [entityRoute, second, nestedRoute, fourth]);
+    return apiCall(actionForCrud(current, hasData ? 'create' : 'list'), pathSegments);
   }
-
-  if (segments.length === 5 && nestedEntity) {
-    const nestedAction = actionByNameAndTarget(nestedEntity, fifth, 'member');
-    if (nestedAction) {
-      return apiCall(nestedAction, isCrudAction(nestedAction) ? [entityRoute, second, nestedRoute, fourth] : [entityRoute, second, nestedRoute, fourth, fifth]);
+  while (index < segments.length) {
+    const segment = segments[index];
+    const collectionAction = actionByNameAndTarget(current, segment, 'collection');
+    if (collectionAction && index === segments.length - 1) return apiCall(collectionAction, isCrudAction(collectionAction) ? pathSegments : [...pathSegments, segment]);
+    if (!isNumericSegment(segment)) throw new Error(`Schema catalog cannot resolve an action for: ${segments.join(' ')}`);
+    pathSegments.push(segment);
+    index += 1;
+    if (index === segments.length) return apiCall(actionForCrud(current, hasData ? 'update' : 'get'), pathSegments);
+    const child = catalogEntity(catalog, segments[index]);
+    if (child && catalog.grammar?.nested?.[child.entity] === current.entity) {
+      pathSegments.push(routeSegmentForEntity(child, segments[index]));
+      current = child;
+      index += 1;
+      if (index === segments.length) return apiCall(actionForCrud(current, hasData ? 'create' : 'list'), pathSegments);
+      continue;
     }
+    const memberAction = actionByNameAndTarget(current, segments[index], 'member');
+    if (memberAction && index === segments.length - 1) return apiCall(memberAction, isCrudAction(memberAction) ? pathSegments : [...pathSegments, segments[index]]);
+    throw new Error(`Schema catalog cannot resolve an action for: ${segments.join(' ')}`);
   }
-
-  throw new Error(`Schema catalog cannot resolve an action for: ${segments.join(' ')}`);
 }
 
 async function resolveApiRequest(positionals, options, data) {
+  const segments = positionals.flatMap(value => String(value).split('/').filter(Boolean));
   const params = parseParams(options);
   if (options.method) {
-    return { method: String(options.method).toUpperCase(), pathSegments: positionals, params, action: null };
+    return { method: String(options.method).toUpperCase(), pathSegments: segments, params, action: null };
   }
 
   const catalog = await loadSchemaCatalog();
-  const call = resolveApiCall(catalog, positionals, data !== undefined);
+  const call = resolveApiCall(catalog, segments, data !== undefined);
   validateQueryParameters(call.action, params);
   return { method: methodForAction(call.action), pathSegments: call.pathSegments, params, action: call.action };
 }
@@ -1049,14 +1093,34 @@ function detectHarnesses(projectRoot) {
   return detections;
 }
 
-function bundleSkillPath(provider) {
-  return join(packageRoot, 'dist', 'providers', provider.name, skillName);
+function bundleSkillPath() {
+  return join(packageRoot, 'skills', skillName);
+}
+
+function servedSkillPath() {
+  return join(packageRoot, 'dist', 'providers', providers.find(provider => provider.mode === 'cli').name, skillName);
 }
 
 function ensureBuilt() {
-  const expected = join(packageRoot, 'dist', 'providers', providers[0].name, skillName, 'SKILL.md');
-  if (existsSync(expected)) return;
+  if (existsSync(join(servedSkillPath(), 'SKILL.md')) && existsSync(join(bundleSkillPath(), 'SKILL.md'))) return;
   throw new Error('Compiled skill bundle is missing. Run `npm run build`.');
+}
+
+function skill(positionals) {
+  ensureBuilt();
+  const bundle = servedSkillPath();
+  const name = positionals[0];
+  if (!name) {
+    const body = readFileSync(join(bundle, 'SKILL.md'), 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n\s*/, '');
+    process.stdout.write(`Dent skill v${readPackage().version}, served by the dent CLI. A reference named below is printed by \`dent skill references/<path>\`.\n\n${body}`);
+    return;
+  }
+  const file = resolve(bundle, name);
+  if (!file.startsWith(`${bundle}/`) || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
+    const available = listFiles(bundle).filter(path => path.startsWith('references/'));
+    throw new Error(`Unknown skill reference: ${name}. Available:\n${available.join('\n')}`);
+  }
+  process.stdout.write(readFileSync(file, 'utf8'));
 }
 
 function listFiles(root) {
@@ -1065,7 +1129,8 @@ function listFiles(root) {
   function walk(dir) {
     for (const entry of readdirSync(dir)) {
       const absolute = join(dir, entry);
-      const info = statSync(absolute);
+      const info = lstatSync(absolute);
+      if (info.isSymbolicLink()) continue;
       if (info.isDirectory()) walk(absolute);
       else files.push(relative(root, absolute).replaceAll('\\', '/'));
     }
@@ -1076,13 +1141,6 @@ function listFiles(root) {
 
 function hashFile(file) {
   return createHash('sha256').update(readFileSync(file)).digest('hex');
-}
-
-function sameTree(left, right) {
-  const leftFiles = listFiles(left);
-  const rightFiles = listFiles(right);
-  if (leftFiles.join('\n') !== rightFiles.join('\n')) return false;
-  return leftFiles.every(file => hashFile(join(left, file)) === hashFile(join(right, file)));
 }
 
 function readSkillManifest(skillPath) {
@@ -1118,13 +1176,23 @@ function readInstalledVersion(skillPath) {
   const file = join(skillPath, 'SKILL.md');
   if (!existsSync(file)) return null;
   const text = readFileSync(file, 'utf8');
-  const match = text.match(/^version:\s*['"]?([^'"\n]+)['"]?$/m);
-  return match ? match[1].trim() : null;
+  const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1];
+  if (frontmatter === undefined) return null;
+  const lines = frontmatter.split(/\r?\n/);
+  const value = line => line.replace(/\s+#.*$/, '').match(/:\s*['"]?([^'"\n]+)['"]?\s*$/)?.[1].trim() || null;
+  const metadata = lines.findIndex(line => /^metadata:\s*$/.test(line));
+  if (metadata !== -1) {
+    for (const line of lines.slice(metadata + 1)) {
+      if (/^\S/.test(line)) break;
+      if (/^\s+version:/.test(line)) return value(line);
+    }
+  }
+  return value(lines.find(line => /^version:/.test(line)) || '');
 }
 
 function copySkill(target, force = false) {
-  const source = bundleSkillPath(target);
-  if (!existsSync(source)) throw new Error(`No compiled skill bundle for ${target.name}. Run npm run build.`);
+  const source = bundleSkillPath();
+  if (!existsSync(source)) throw new Error('No compiled skill pointer. Run npm run build.');
   let destination = installedSkillPath(target);
   if (!force && installedState(source, destination).status === 'current') {
     return { status: 'current', destination };
@@ -1134,9 +1202,58 @@ function copySkill(target, force = false) {
   if (lstatSync(destination, { throwIfNoEntry: false })?.isSymbolicLink() && existsSync(destination)) {
     destination = realpathSync(destination);
   }
-  rmSync(destination, { recursive: true, force: true });
-  cpSync(source, destination, { recursive: true });
+  syncTree(source, destination);
   return { status: 'written', destination };
+}
+
+function syncTree(source, destination) {
+  mkdirSync(destination, { recursive: true });
+  const sourceFiles = listFiles(source);
+  const destinationFiles = new Set(listFiles(destination));
+  for (const file of sourceFiles) {
+    const from = join(source, file);
+    const to = join(destination, file);
+    let parent = destination;
+    let linked = false;
+    for (const part of file.split('/')) {
+      parent = join(parent, part);
+      if (lstatSync(parent, { throwIfNoEntry: false })?.isSymbolicLink()) linked = true;
+    }
+    if (linked) {
+      console.log(`Skipped symlinked destination entry: ${to}`);
+      destinationFiles.delete(file);
+      continue;
+    }
+    mkdirSync(dirname(to), { recursive: true });
+    const mode = statSync(from).mode & 0o777;
+    if (!existsSync(to) || hashFile(from) !== hashFile(to) || (statSync(to).mode & 0o777) !== mode) {
+      const temporary = `${to}.tmp`;
+      writeFileSync(temporary, readFileSync(from), { mode });
+      chmodSync(temporary, mode);
+      renameSync(temporary, to);
+    }
+    destinationFiles.delete(file);
+  }
+  for (const file of destinationFiles) {
+    const path = join(destination, file);
+    if (lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      console.log(`Skipped symlinked destination entry: ${path}`);
+      continue;
+    }
+    unlinkSync(path);
+  }
+  const directories = new Set([...destinationFiles].flatMap(file => {
+    const paths = [];
+    let directory = dirname(join(destination, file));
+    while (directory !== destination) {
+      paths.push(directory);
+      directory = dirname(directory);
+    }
+    return paths;
+  }));
+  for (const directory of [...directories].sort((left, right) => right.length - left.length)) {
+    if (readdirSync(directory).length === 0) rmSync(directory);
+  }
 }
 
 async function promptInstallChoice(detections) {
@@ -1183,43 +1300,215 @@ async function installOrUpdate(command, options) {
   if (wrote === 0 && current > 0) console.log('Nothing to do.');
 }
 
-function findInstalledSkills(projectRoot) {
+function findInstalledSkills(projectRoot, pluginRoot) {
+  const found = new Map();
+  function addInstalledSkill(item) {
+    const realpath = realpathSync(item.skillPath);
+    const installed = found.get(realpath);
+    if (installed) {
+      if (installed.owner !== 'copy' && item.owner === 'copy') return;
+      installed.labels.push(item.label);
+      installed.owners = new Set([...(installed.owners || [installed.owner]), ...(item.owner === 'copy' ? [] : [item.owner])]);
+      if (installed.owner === 'copy' && item.owner !== 'copy') {
+        installed.owner = item.owner;
+        installed.labels = [item.label];
+        installed.label = item.label;
+        installed.global = item.global;
+      }
+      return;
+    }
+    found.set(realpath, { ...item, realpath, labels: [item.label], owners: new Set(item.owner === 'copy' ? [] : [item.owner]) });
+  }
+  if (pluginRoot) {
+    const skillPath = join(resolve(pluginRoot), 'skills', skillName);
+    if (existsSync(join(skillPath, 'SKILL.md'))) addInstalledSkill({ label: 'claude plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'claude-plugin' });
+  }
+  const installedPlugins = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  if (existsSync(installedPlugins)) {
+    const plugins = JSON.parse(readFileSync(installedPlugins, 'utf8')).plugins;
+    for (const [name, installations] of Object.entries(plugins)) {
+      if (name.startsWith(`${pluginName}@`)) {
+        for (const plugin of installations) {
+          const skillPath = join(plugin.installPath, 'skills', skillName);
+          if (existsSync(join(skillPath, 'SKILL.md'))) {
+            addInstalledSkill({ label: 'claude plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'claude-plugin' });
+          }
+        }
+      }
+    }
+  }
+  const codexCache = join(homedir(), '.codex', 'plugins', 'cache');
+  if (existsSync(codexCache)) {
+    for (const marketplace of readdirSync(codexCache)) {
+      const marketplacePath = join(codexCache, marketplace, pluginName);
+      if (!statSync(marketplacePath, { throwIfNoEntry: false })?.isDirectory()) continue;
+      for (const version of readdirSync(marketplacePath)) {
+        const skillPath = join(marketplacePath, version, 'skills', skillName);
+        if (existsSync(join(skillPath, 'SKILL.md'))) addInstalledSkill({ label: 'codex plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'codex-plugin' });
+      }
+    }
+  }
+  const skillLocks = [
+    { path: process.env.XDG_STATE_HOME ? join(process.env.XDG_STATE_HOME, 'skills', '.skill-lock.json') : join(homedir(), '.agents', '.skill-lock.json'), root: homedir(), global: true },
+    { path: join(projectRoot, 'skills-lock.json'), root: projectRoot, global: false },
+  ].flatMap(lock => {
+    if (!existsSync(lock.path)) return [];
+    const entry = JSON.parse(readFileSync(lock.path, 'utf8')).skills?.[skillName];
+    return entry ? [{ ...lock, entry }] : [];
+  });
   const roots = [projectRoot, homedir()];
-  const found = [];
   for (const root of roots) {
     for (const key of harnessOrder) {
       const provider = providerFromValue(key);
       const skillPath = join(root, provider.harnessDir, 'skills', skillName);
       if (existsSync(join(skillPath, 'SKILL.md'))) {
-        found.push({ ...provider, key, root, skillPath, version: readInstalledVersion(skillPath) });
+        const lock = skillLocks.find(item => item.root === root && (!item.global || root !== projectRoot || provider.harnessDir === '.agents'));
+        addInstalledSkill({ ...provider, key, root, skillPath, version: readInstalledVersion(skillPath), label: lock ? 'skills CLI' : provider.label, owner: lock ? 'skills-cli' : 'copy', global: lock?.global });
       }
     }
   }
-  return found;
+  return [...found.values()];
 }
 
-function check(options) {
+function compareVersions(left, right) {
+  const parts = value => String(value).split('.').map(part => Number(part.replace(/\D.*$/, '')) || 0);
+  const a = parts(left);
+  const b = parts(right);
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) if ((a[index] || 0) !== (b[index] || 0)) return (a[index] || 0) - (b[index] || 0);
+  return 0;
+}
+
+async function registryVersion() {
+  const url = process.env.DENT_REGISTRY_URL || 'https://registry.npmjs.org/@getdent%2Fskill/latest';
+  const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const body = await response.json();
+  if (!body.version) throw new Error('Registry response has no version.');
+  return body.version;
+}
+
+async function check(options) {
   ensureBuilt();
   const projectRoot = findProjectRoot(options.dir || process.cwd());
-  const installed = findInstalledSkills(projectRoot);
+  const installed = options.target
+    ? [{ ...providerFromValue(options.provider || 'claude-code'), skillPath: join(resolve(options.target), 'skills', skillName), label: providerFromValue(options.provider || 'claude-code').label, owner: 'copy', version: readInstalledVersion(join(resolve(options.target), 'skills', skillName)), realpath: resolve(join(resolve(options.target), 'skills', skillName)), labels: [providerFromValue(options.provider || 'claude-code').label], owners: new Set() }].filter(item => existsSync(join(item.skillPath, 'SKILL.md')))
+    : findInstalledSkills(projectRoot, options['plugin-root']);
+  let publishedVersion;
+  try {
+    publishedVersion = await registryVersion();
+  } catch {
+    console.log('Registry unreachable; compared against the local package only.');
+    process.exitCode = 2;
+  }
+  const packageVersion = readPackage().version;
+  if (publishedVersion && compareVersions(packageVersion, publishedVersion) < 0) console.log(`Dent CLI v${packageVersion} is behind v${publishedVersion}. Run: npm install -g @getdent/skill@latest`);
   if (installed.length === 0) {
-    console.log('Dent skill is not installed. Run `dent install`.');
+    if (!options.quiet) console.log('Dent skill is not installed. Run `dent install`.');
     return;
   }
   for (const item of installed) {
-    const state = installedState(bundleSkillPath(item), item.skillPath);
-    const expectedVersion = readSkillManifest(bundleSkillPath(item))?.version || readPackage().version;
-    console.log(`Found ${item.label}: ${item.skillPath} (installed v${item.version || 'unknown'})`);
+    const state = item.owner === 'copy'
+      ? installedState(bundleSkillPath(), item.skillPath)
+      : { status: compareVersions(item.version || '0.0.0', publishedVersion || readPackage().version) < 0 ? 'stale' : 'current', source: 'manifest', manifest: readSkillManifest(item.skillPath) };
+    const expectedVersion = item.owner !== 'copy' ? (publishedVersion || readPackage().version) : (readSkillManifest(bundleSkillPath())?.version || readPackage().version);
+    if (!options.quiet) console.log(`Found ${item.labels.join(', ')}: ${item.skillPath} (installed v${item.version || 'unknown'})`);
     if (state.status !== 'current') {
       const installedVersion = state.manifest?.version || item.version || 'unknown';
-      const reason = installedVersion === expectedVersion
-        ? `installed contents differ from package v${expectedVersion}`
-        : `installed v${installedVersion}, package v${expectedVersion}`;
-      console.log(`Update available from ${state.source}: ${reason}. Run \`dent update\`.`);
+      const newerVersion = publishedVersion && compareVersions(publishedVersion, expectedVersion) > 0 ? publishedVersion : expectedVersion;
+      const reason = compareVersions(installedVersion, newerVersion) < 0 ? `v${installedVersion} is behind v${newerVersion}` : `v${installedVersion} differs from the package v${newerVersion} files`;
+      console.log(`Dent skill (${item.labels.join(', ')} at ${item.realpath}) ${reason}. Run: ${updateCommandFor(item.owner, item.global)}`);
+      for (const owner of [...(item.owners || [])].filter(owner => owner !== item.owner)) {
+        console.log(`Run: ${updateCommandFor(owner, item.global)}`);
+      }
     } else {
-      console.log(`Dent skill is up to date by ${state.source} (v${item.version}).`);
+      if (!options.quiet) console.log(`Dent skill is up to date by ${state.source} (v${item.version}).`);
     }
   }
+}
+
+async function update(options) {
+  const installed = findInstalledSkills(findProjectRoot(options.dir || process.cwd()), options['plugin-root']);
+  const copied = installed.filter(item => item.owner === 'copy');
+  const owners = [...new Set(installed.flatMap(item => [...(item.owners || [item.owner])]).filter(owner => owner !== 'copy'))];
+  let publishedVersion;
+  try {
+    publishedVersion = await registryVersion();
+  } catch {
+    console.log('Registry unreachable; compared against the local package only.');
+  }
+  const cliBehind = Boolean(publishedVersion) && compareVersions(readPackage().version, publishedVersion) < 0;
+  if (cliBehind && !options['skip-upgrade']) {
+    if (packageRoot.includes('_npx')) {
+      const args = ['--yes', '--prefer-online', '@getdent/skill@latest', 'update', '--skip-upgrade'];
+      for (const name of ['plugin-root', 'dir', 'target', 'provider', 'scope']) if (options[name]) args.push(`--${name}`, options[name]);
+      if (options.force) args.push('--force');
+      const rerun = spawnSync('npx', args, { stdio: 'inherit', timeout: 120000 });
+      if (rerun.error) {
+        console.log(`Run: npx ${args.join(' ')}`);
+        return;
+      }
+      if (rerun.status !== 0) process.exitCode = rerun.status || 1;
+      return;
+    } else {
+      const installedPackage = spawnSync('npm', ['install', '-g', '@getdent/skill@latest'], { stdio: 'inherit', timeout: 300000 });
+      if (installedPackage.error) throw new Error(`Could not upgrade the Dent CLI: ${installedPackage.error.message}`);
+      if (installedPackage.status !== 0) throw new Error('Could not upgrade the Dent CLI.');
+      const args = ['update', '--skip-upgrade'];
+      for (const name of ['plugin-root', 'dir', 'target', 'provider', 'scope']) {
+        if (options[name]) args.push(`--${name}`, options[name]);
+      }
+      if (options.force) args.push('--force');
+      const globalRoot = spawnSync('npm', ['root', '-g'], { encoding: 'utf8', timeout: 30000 });
+      if (globalRoot.error || globalRoot.status !== 0) throw new Error('Could not resolve the upgraded Dent CLI.');
+      if (!globalRoot.stdout.trim()) return;
+      const rerun = spawnSync(process.execPath, [join(globalRoot.stdout.trim(), '@getdent', 'skill', 'cli', 'bin', 'dent.js'), ...args], { stdio: 'inherit', timeout: 120000 });
+      if (rerun.error) throw new Error(`Could not run dent to refresh the Dent skill: ${rerun.error.message}`);
+      if (rerun.status !== 0) throw new Error('Could not update the Dent skill after upgrading the CLI.');
+      return;
+    }
+  }
+  if (installed.length === 0) {
+    await installOrUpdate('update', options);
+  } else {
+    for (const item of copied) {
+      const target = { ...item, harnessPath: dirname(dirname(item.skillPath)) };
+      const result = copySkill(target, true);
+      const version = readInstalledVersion(result.destination) || readPackage().version;
+      const action = result.status === 'written' ? 'Installed' : 'Dent skill is up to date';
+      console.log(`${action} for ${target.label} at ${result.destination} (v${version}).`);
+    }
+  }
+  for (const owner of owners) console.log(`Run: ${updateCommandFor(owner, installed.find(item => (item.owners || new Set()).has(owner))?.global)}`);
+}
+
+async function pluginPath(options) {
+  const stamp = join(resolveConfigDir(), 'plugin-refresh');
+  const checkedAt = statSync(stamp, { throwIfNoEntry: false })?.mtimeMs || 0;
+  const dayOld = Date.now() - checkedAt > 24 * 60 * 60 * 1000;
+  if (dayOld && !options.fresh) {
+    let publishedVersion;
+    try {
+      publishedVersion = await registryVersion();
+    } catch {
+      publishedVersion = undefined;
+    }
+    if (publishedVersion) {
+      mkdirSync(dirname(stamp), { recursive: true, mode: 0o700 });
+      writeFileSync(stamp, `${publishedVersion}\n`);
+      if (compareVersions(readPackage().version, publishedVersion) < 0) {
+        const rerun = spawnSync('npx', ['--yes', '--prefer-online', '@getdent/skill@latest', 'plugin-path', '--fresh'], { encoding: 'utf8', timeout: 55000 });
+        if (!rerun.error && rerun.status === 0 && rerun.stdout.trim()) return console.log(rerun.stdout.trim());
+      }
+    }
+  }
+  console.log(packageRoot);
+}
+
+function updateCommandFor(owner, global) {
+  if (owner === 'claude-plugin') return `/plugin update ${pluginName}@${marketplaceName}`;
+  if (owner === 'codex-plugin') return 'codex plugin marketplace upgrade';
+  if (owner === 'skills-cli') return global ? 'npx skills update dent -g' : 'npx skills update dent';
+  return 'dent update';
 }
 
 async function main() {
@@ -1227,8 +1516,10 @@ async function main() {
   const { positionals, options } = parseArgs(rest);
   if (command === 'help' || command === '--help' || command === '-h') return printHelp();
   if (command === '--version' || command === '-v') return console.log(readPackage().version);
+  if (command === 'plugin-path') return pluginPath(options);
+  if (command === 'skill') return skill(positionals);
   if (command === 'install') return installOrUpdate('install', options);
-  if (command === 'update') return installOrUpdate('update', options);
+  if (command === 'update') return update(options);
   if (command === 'check') return check(options);
   if (command === 'login') return login(options);
   if (command === 'logout') return logout();
@@ -1241,7 +1532,11 @@ async function main() {
   throw new Error(`Unknown command: ${command}. Run \`dent help\`.`);
 }
 
-main().catch(error => {
-  console.error(error?.message || error);
-  process.exit(1);
-});
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  main().catch(error => {
+    console.error(error?.message || error);
+    process.exit(1);
+  });
+}
+
+export { loadCredentials, apiRequestWithCredentials };

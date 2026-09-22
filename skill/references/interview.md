@@ -61,11 +61,11 @@ Use this before writing copy or authoring a Dent Designer tree for a Page, Artic
 
    - `surface`: Dent surface being authored, such as Page, Article, Funnel Step, Checkout Funnel Step, or Upsell Funnel Step.
    - `page_job`: the one action or understanding this surface must produce.
-   - `audience`: the specific customer, buyer, reader, or Contact this is for.
+   - `audience`: the specific person, reader, or Contact this is for.
    - `customer_situation`: what is happening in their world before they arrive.
    - `customer_language`: phrases, pains, wants, objections, and labels in the operator's or customer's own words.
    - `promise`: the single before-to-after outcome the page will argue for.
-   - `offer`: the Product, Offer, lead magnet, access, terms, price, risk reversal, and real reason to act.
+   - `offer`: the Product, Offer, free Offer, access, terms, price, risk reversal, and real reason to act.
    - `differentiation`: the named alternative and the one axis where this wins.
    - `proof_points`: real evidence available to support claims.
    - `proof_gaps`: claims the operator wants but cannot yet prove.

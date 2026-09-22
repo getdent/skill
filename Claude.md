@@ -7,8 +7,10 @@
 If loopback cannot reach the CLI because the operator is in a remote browser, web agent, or locked-down machine, use the browser code recovery flow:
 
 ```bash
-dent login
-dent login --copy-code
+dent login                        # opens the browser, waits on loopback
+dent login --no-open              # prints the authorize URL, waits on loopback (the agent path)
+dent login --copy-code --start    # prints the URL, saves the pending exchange for five minutes
+dent login --copy-code --code X   # finishes with the code the operator typed
 ```
 
 Never ask the operator to create a personal access token for normal login. Never put a token in argv. Explicit token input remains only for power-user recovery with `--token-prompt` or `--stdin`, and the CLI verifies it against `GET /api/v1/schema/` before saving it.
@@ -23,14 +25,14 @@ echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com -
 
 ## Why
 
-`@parkerlabs/dent` ships one executable, `dent`, plus compiled AI-agent skill bundles so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into provider bundles that keep Claude Code, Codex, and Claude web aligned with Dent's schema catalog.
+`@getdent/skill` ships one executable, `dent`, plus compiled AI-agent skill bundles so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into provider bundles that keep Claude Code, Codex, and Claude web aligned with Dent's schema catalog.
 
 Dent is multi-tenant. Each active target has a Dent Site URL and stored credential. The CLI stores verified credentials outside project directories, then agents can drive Dent's schema-driven tenant API.
 
 ## Quick start
 
 ```bash
-npm install -g @parkerlabs/dent
+npm install -g @getdent/skill
 dent install
 dent login
 ```
@@ -38,11 +40,11 @@ dent login
 Transient `npx` setup works too, but it does not leave a `dent` command installed:
 
 ```bash
-npx @parkerlabs/dent@latest install
-npx @parkerlabs/dent@latest login
+npx @getdent/skill@latest install
+npx @getdent/skill@latest login
 ```
 
-If `dent` is not on `PATH`, run each Dent CLI command as `npx @parkerlabs/dent@latest <command>`.
+If `dent` is not on `PATH`, run each Dent CLI command as `npx @getdent/skill@latest <command>`.
 
 ## Install the agent skill
 
@@ -64,9 +66,32 @@ Update and check:
 
 ```bash
 dent check
+dent check --quiet
+dent check --plugin-root <path>
 dent update
 dent update --force
 ```
+
+- `dent check` asks npm for the latest version and names every stale CLI, skill, or plugin copy; a stale line is not an error, an unreachable registry exits 2.
+- `dent check --quiet` prints only the stale lines.
+- `dent check` knows four owners of an installed skill: a plain copy in a harness dir, a Claude Code plugin (`~/.claude/plugins/installed_plugins.json`, or `--plugin-root <path>`), a Codex plugin (`~/.codex/plugins/cache/*/dent/*/`), and a skills-CLI copy (`~/.agents/.skill-lock.json`, `skills-lock.json`).
+- `dent update` upgrades a global CLI through npm first, then refreshes every plain copy.
+- `dent update` never rewrites a skill another tool owns; it prints that owner's update command instead (`/plugin update dent@getdent`, `codex plugin marketplace upgrade`, `npx skills update dent -g`).
+- `dent plugin-path` prints the package root; the package root is the plugin for every host.
+- `dent plugin-path` asks the registry at most once a day (stamp file `plugin-refresh` in the config dir, mtime), and when the registry is ahead it re-runs `npx --yes --prefer-online @getdent/skill@latest plugin-path --fresh` and prints that path instead; an unreachable registry prints the current path and leaves the stamp alone.
+- The marketplace entry is a Claude Code command source running `npx --yes --prefer-offline @getdent/skill@latest plugin-path`; Claude Code runs it once per session in the background, and the daily stamp keeps npm traffic to one small read a day.
+- The published marketplace command resolves `plugin-path` from npm, so a release is on npm before it is on GitHub.
+- `skills/dent/` is the one skill every installer discovers (Vercel `skills`, openskills, reskill, Gemini CLI, the Claude and Codex plugin loaders), and it is a pointer: frontmatter from `skill/Source.md` plus the body of `skill/Pointer.md`, no references.
+- `dent skill` prints the full cli-variant skill from `dist/providers/<first cli provider>/dent/SKILL.md` without its frontmatter; `dent skill references/<path>` prints one reference and refuses any path outside that bundle. The skill text can never be older than the installed CLI.
+- The claude.ai `.skill` upload stays the full web variant because that host has no shell.
+- The manifests are `plugin.json` (Agent Plugins 1.0.0, read by Cursor and pi), `.claude-plugin/plugin.json` + `marketplace.json`, `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json`, and `.cursor-plugin/plugin.json`.
+- `npm run build` writes `skills/dent`, `dist/web/dent.skill`, `dist/openai/dent-plugin.zip`, and rewrites the version in every manifest; `check:plugin` fails when any manifest's version drifts from `package.json`, and `check:clean` fails when a tracked generated file differs from a fresh build or a new one is untracked.
+- The SKILL.md frontmatter carries the version as `metadata.version` (the Agent Skills standard has no top-level `version`); the CLI reads that first and the legacy top-level `version` second.
+- `.github/workflows/ci.yml` runs build, tests, the three guards, and `check:clean` on every pull request and push to `main`.
+- `.github/workflows/publish.yml` runs when a `v*` tag is pushed: build, tests, guards, `check:clean`, tag equals `package.json` version, `npm publish` through npm trusted publishing (no token, skipped when that version is already on npm), then the GitHub release with `dist/web/dent.skill` and `dist/openai/dent-plugin.zip`.
+- The `version` npm script rebuilds and stages every manifest, so an `npm version` commit carries the bumped skill and manifests; pushing its tag starts the publish workflow.
+- npm trusted publishing is bound once on npmjs.com to `getdent/skill` and the workflow file `publish.yml`.
+- The package license is MIT; the SaaS behind the API stays closed.
 
 ## Credential storage
 
@@ -107,7 +132,8 @@ bun dent-skill reset
 dent logout
 ```
 
-Logout removes the stored credential for the active target.
+- Logout revokes the token on Dent through `DELETE /platform/api/v1/tokens/{id}` with the id stored at login.
+- Logout removes the stored credential for the active target even when the revoke fails, and names the token id to revoke by hand.
 
 ## API commands
 
@@ -135,12 +161,16 @@ npm run build
 
 Outputs:
 
+- `skills/dent/` (tracked; the pointer every installer and plugin loader reads)
 - `dist/providers/claude-code/dent/`
 - `dist/providers/codex/dent/`
 - `dist/providers/claude-web/dent/`
-- `dist/providers/claude-web/dent.zip`
+- `dist/web/dent.skill` (the claude.ai upload, attached to each GitHub release)
+- `dist/openai/dent-plugin.zip` is the OpenAI Plugins Directory submission bundle, attached to each GitHub release.
 
-All providers pass through the provider customization seam in `scripts/build.js`, even though the content is identical today.
+- Every provider passes through the provider customization seam in `scripts/build.js`.
+- The two `cli` providers produce identical content.
+- The `web` provider strips the `<!-- dent:cli -->` blocks and keeps the `<!-- dent:web -->` ones.
 
 ## Facts
 
@@ -148,7 +178,7 @@ All providers pass through the provider customization seam in `scripts/build.js`
 - `providers.json` is the provider source of truth for both the build pipeline and installer.
 - `scripts/build.js` compiles `skill/Source.md` into `dist/providers/<provider>/dent`.
 - Every provider bundle passes through the build customization seam before it is written.
-- The CLI verifies credentials against the tenant schema catalog before saving them.
+- A pasted token is verified against the tenant schema catalog before it is saved; a browser login saves the exchanged token first and verifies after, so a Site that is slow to answer never loses the login.
 - The CLI resolves entity names, actions, modes, and parameters from the schema catalog instead of hardcoded entity lists.
 - `skill/references/` contains authored skill prose owned outside this documentation pass.
 - `docs/agents/` holds agent-run evidence for hardening and verification work.

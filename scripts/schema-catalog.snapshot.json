@@ -1,1961 +1,2410 @@
 {
   "source": {
     "kind": "captured-schema-catalog-projection",
-    "schemaCapturedAt": "2026-07-07T15:35:19-04:00",
-    "schemaSource": "GET /api/v1/schema on a Dent testing tenant, captured at /tmp/dent-live-schema.json",
-    "routeSource": "Route attributes read from the Dent app for non-schema public endpoints referenced by the skill",
+    "schemaCapturedAt": "2026-09-21T11:32:42.480Z",
+    "schemaSource": "GET /api/v1/schema/",
+    "dentCommit": null,
     "why": "CI needs a fail-loud workflow drift check without a live tenant credential. The Dent CLI fetches this catalog shape live at runtime; this fixture keeps only entity route names and action metadata needed to validate authored workflows."
+  },
+  "grammar": {
+    "singletons": [
+      "settings",
+      "dent",
+      "account"
+    ],
+    "nested": {
+      "step": "funnel",
+      "section": "course",
+      "lesson": "section"
+    }
   },
   "routes": [
     {
       "method": "GET",
-      "path": "/api/v1/schema/",
-      "source": "app/Tenant/Controllers/SchemaController.php"
+      "path": "/api/v1/schema",
+      "source": "app/Platform/Controllers/SchemaController.php"
     },
     {
       "method": "POST",
       "path": "/api/v1/forms/submit",
-      "source": "app/Tenant/Designer/Controllers/FormsController.php"
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cart",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cart",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cart/checkout",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/checkout/{cart}/submit",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/checkout/{cart}/refresh",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/offers/{offer}/accept",
+      "source": "observed live route"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/offers/{offer}/decline",
+      "source": "observed live route"
     },
     {
       "method": "GET",
       "path": "/api/v1/funnel/cart",
-      "source": "app/Tenant/Funnels/Controllers/FunnelCartController.php"
+      "source": "non-schema public endpoint"
     },
     {
       "method": "POST",
       "path": "/api/v1/funnel/cart",
-      "source": "app/Tenant/Funnels/Controllers/FunnelCartController.php"
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/platform/api/v1/tokens",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "DELETE",
+      "path": "/platform/api/v1/tokens/{id}",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/platform/api/v1/tokens/identity",
+      "source": "non-schema public endpoint"
+    },
+    {
+      "method": "POST",
+      "path": "/platform/api/v1/auth/cli-authorization",
+      "source": "non-schema public endpoint"
     }
   ],
   "catalog": {
     "account": {
       "entity": "account",
+      "route": "account",
       "label": "Accounts",
       "actions": [
         {
-          "name": "profile",
-          "mode": "read",
-          "target": "collection"
+          "name": "details",
+          "target": "collection",
+          "mode": "read"
         },
         {
-          "name": "update-profile",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "profile-media-folder",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "profile-media-upload-url",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "process-profile-media",
-          "mode": "remote",
-          "target": "collection"
+          "name": "update-details",
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "get-team-member",
-          "mode": "read",
-          "target": "member"
+          "target": "member",
+          "mode": "read"
         },
         {
           "name": "password",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "write"
         },
         {
           "name": "list",
-          "mode": "read",
-          "target": "collection"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "lookup",
-          "mode": "read",
-          "target": "collection"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "grant-role",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "write"
         },
         {
           "name": "revoke-account-access",
-          "mode": "destroy",
-          "target": "member"
+          "target": "member",
+          "mode": "destroy"
         },
         {
           "name": "count",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
         }
       ]
     },
-    "article": {
-      "entity": "article",
-      "label": "Articles",
-      "actions": [
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "community": {
-      "entity": "community",
-      "label": "Communities",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "component": {
-      "entity": "component",
-      "label": "Components",
-      "actions": [
-        {
-          "name": "design",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "replace-design",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "contact": {
-      "entity": "contact",
-      "label": "Contacts",
+    "author": {
+      "entity": "author",
+      "route": "authors",
+      "label": "Authors",
       "actions": [
         {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "spaces",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "customer-results",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "lifetime-value",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "by-campaign",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
+          "target": "member",
+          "mode": "destroy"
         },
         {
           "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        }
-      ]
-    },
-    "course": {
-      "entity": "course",
-      "label": "Courses",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "dent": {
-      "entity": "dent",
-      "label": "Dent",
-      "actions": [
-        {
-          "name": "health-errors",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "analytics-results",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "overview-analytics",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "breakdown",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "export-breakdown",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "daily-totals",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "visitor-event-feed",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "return-on-ad-spend",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "ad-spend",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "save-ad-spend",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "realtime-visitor-events",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "realtime-sessions",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "realtime-journeys",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "realtime-transactions",
-          "mode": "read",
-          "target": "collection"
+          "target": "member",
+          "mode": "read"
         },
         {
           "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
+          "target": "member",
+          "mode": "write"
         }
       ]
     },
     "domain": {
       "entity": "domain",
+      "route": "domains",
       "label": "Domains",
       "actions": [
         {
           "name": "verify",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "activate",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "deactivate",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "activate-email",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "set-mail-domain",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "check",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "email": {
-      "entity": "email",
-      "label": "Emails",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "send-test",
-          "mode": "remote",
-          "target": "member"
-        }
-      ]
-    },
-    "email-send": {
-      "entity": "email-send",
-      "label": "EmailSends",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "experiment": {
-      "entity": "experiment",
-      "label": "FunnelTests",
-      "actions": [
-        {
-          "name": "declare-winner",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "create-version",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete-version",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "results",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "start",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "pause",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "reset",
-          "mode": "write",
-          "target": "member"
-        }
-      ]
-    },
-    "form-submission": {
-      "entity": "form-submission",
-      "label": "Form Submissions",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "funnel": {
-      "entity": "funnel",
-      "label": "Funnels",
-      "actions": [
-        {
-          "name": "export",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "analytics",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "step-analytics",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "offer-analytics",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "experiments",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "settings",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "state",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "duplicate",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "archive",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "unarchive",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "set-homepage",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "dashboard",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "revenue-results",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "step-results",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "import",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "reorder",
-          "mode": "write",
-          "target": "member"
-        }
-      ]
-    },
-    "group": {
-      "entity": "group",
-      "label": "Groups",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "integration": {
-      "entity": "integration",
-      "label": "Integrations",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "configure",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "remote"
         },
         {
           "name": "connect",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "complete",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "enable",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "disable",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "remote"
         },
         {
           "name": "disconnect",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "remote"
         },
         {
-          "name": "test",
-          "mode": "remote",
-          "target": "member"
-        }
-      ]
-    },
-    "lesson": {
-      "entity": "lesson",
-      "label": "Lessons",
-      "actions": [
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "name": "activate-email",
+          "target": "member",
+          "mode": "remote"
         },
         {
           "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "link": {
-      "entity": "link",
-      "label": "Links",
-      "actions": [
-        {
-          "name": "recompute-analytics",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "collection",
+          "mode": "write"
         },
         {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
+          "name": "set-primary-domain",
+          "target": "collection",
+          "mode": "write"
         },
         {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
+          "name": "set-mail-domain",
+          "target": "collection",
+          "mode": "write"
         },
         {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "media": {
-      "entity": "media",
-      "label": "Media",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "upload-url",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "process",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "replace",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "move",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "restore",
-          "mode": "write",
-          "target": "member"
+          "name": "check",
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "bulk-move",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "bulk-delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "bulk-restore",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "empty-trash",
-          "mode": "destroy",
-          "target": "collection"
-        },
-        {
-          "name": "check-references",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "publish",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        }
-      ]
-    },
-    "media-folder": {
-      "entity": "media-folder",
-      "label": "Media Folders",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
+          "target": "member",
+          "mode": "destroy"
         },
         {
           "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "tree",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "content",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "member",
+          "mode": "read"
         },
         {
           "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "move",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "member": {
-      "entity": "member",
-      "label": "Members",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "membership": {
-      "entity": "membership",
-      "label": "Memberships",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "notification": {
-      "entity": "notification",
-      "label": "Notifications",
-      "actions": [
-        {
-          "name": "mark-read",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "mark-unread",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "offer": {
-      "entity": "offer",
-      "label": "Offers",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "history",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "availability",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        }
-      ]
-    },
-    "order": {
-      "entity": "order",
-      "label": "Orders",
-      "actions": [
-        {
-          "name": "refund",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "cancel",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "comments",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "add-comment",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "revenue-by-date",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "revenue-by-product",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "results",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "revenue-by-source",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "revenue-by-campaign",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "attributed-revenue",
-          "mode": "read",
-          "target": "collection"
-        }
-      ]
-    },
-    "page": {
-      "entity": "page",
-      "label": "Pages",
-      "actions": [
-        {
-          "name": "design",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "replace-design",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "set-homepage",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "system",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "payment-method": {
-      "entity": "payment-method",
-      "label": "PaymentMethods",
-      "actions": [
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "set-default",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "assign-to-subscriptions",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "setup",
-          "mode": "remote",
-          "target": "collection"
-        }
-      ]
-    },
-    "pixel-config": {
-      "entity": "pixel-config",
-      "label": "Pixel Config",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "preference": {
-      "entity": "preference",
-      "label": "Preferences",
-      "actions": [
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "product": {
-      "entity": "product",
-      "label": "Products",
-      "actions": [
-        {
-          "name": "search",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "script": {
-      "entity": "script",
-      "label": "Scripts",
-      "actions": [
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        }
-      ]
-    },
-    "section": {
-      "entity": "section",
-      "label": "Sections",
-      "actions": [
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "settings": {
-      "entity": "settings",
-      "label": "Settings",
-      "actions": [
-        {
-          "name": "tracking",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "save-tracking",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "theme",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "save-theme",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "reset-theme",
-          "mode": "destroy",
-          "target": "collection"
-        },
-        {
-          "name": "mail-settings",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "mail-stats",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "send-test",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "store-settings",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "save-store-settings",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "space": {
-      "entity": "space",
-      "label": "Spaces",
-      "actions": [
-        {
-          "name": "list-members",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "add-member",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "remove-member",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "bulk-add-members",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        }
-      ]
-    },
-    "step": {
-      "entity": "step",
-      "label": "Steps",
-      "actions": [
-        {
-          "name": "set-homepage",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "set-funnel-home",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "design",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "replace-design",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "rename",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "duplicate",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        }
-      ]
-    },
-    "style": {
-      "entity": "style",
-      "label": "Styles",
-      "actions": [
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        }
-      ]
-    },
-    "subscription": {
-      "entity": "subscription",
-      "label": "Subscriptions",
-      "actions": [
-        {
-          "name": "cancel",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "payments",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "pause",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "resume",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "switch",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "add-item",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "change-payment-method",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "assign-payment-method",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "skip",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "reschedule",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "renew-now",
-          "mode": "remote",
-          "target": "member"
-        },
-        {
-          "name": "create",
-          "mode": "remote",
-          "target": "collection"
-        },
-        {
-          "name": "contact-payment-methods",
-          "mode": "read",
-          "target": "collection"
-        }
-      ]
-    },
-    "template": {
-      "entity": "template",
-      "label": "Templates",
-      "actions": [
-        {
-          "name": "design",
-          "mode": "read",
-          "target": "member"
-        },
-        {
-          "name": "replace-design",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "duplicate",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
+          "target": "member",
+          "mode": "write"
         }
       ]
     },
     "tenant": {
       "entity": "tenant",
+      "route": "tenants",
       "label": "Tenants",
       "actions": []
     },
+    "media-folder": {
+      "entity": "media-folder",
+      "route": "media-folders",
+      "label": "Media Folders",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "tree",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "content",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "move",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "media": {
+      "entity": "media",
+      "route": "media",
+      "label": "Media",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "upload-url",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "process",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "replace",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "move",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "restore",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "bulk-move",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "bulk-delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "bulk-restore",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "empty-trash",
+          "target": "collection",
+          "mode": "destroy"
+        },
+        {
+          "name": "check-references",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "token": {
+      "entity": "token",
+      "route": "tokens",
+      "label": "API Tokens",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "ad": {
+      "entity": "ad",
+      "route": "ads",
+      "label": "Ads",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "ad-account": {
+      "entity": "ad-account",
+      "route": "ad-accounts",
+      "label": "AdAccounts",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "ad-stat": {
+      "entity": "ad-stat",
+      "route": "ad-stats",
+      "label": "AdStats",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "funnel-ad-account": {
+      "entity": "funnel-ad-account",
+      "route": "funnel-ad-accounts",
+      "label": "FunnelAdAccounts",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
     "visitor": {
       "entity": "visitor",
+      "route": "visitors",
       "label": "Visitors",
       "actions": [
         {
           "name": "traffic-by-date",
-          "mode": "read",
-          "target": "collection"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "utm-attribution",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
         }
       ]
     },
-    "webhook-delivery": {
-      "entity": "webhook-delivery",
-      "label": "Webhook Deliveries",
+    "community": {
+      "entity": "community",
+      "route": "communities",
+      "label": "Communities",
       "actions": [
         {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
-        },
-        {
-          "name": "get",
-          "mode": "read",
-          "target": "member"
-        },
-        {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
-        },
-        {
-          "name": "update",
-          "mode": "write",
-          "target": "member"
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "course": {
+      "entity": "course",
+      "route": "courses",
+      "label": "Courses",
+      "actions": [
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "lesson": {
+      "entity": "lesson",
+      "route": "lessons",
+      "label": "Lessons",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "profile": {
+      "entity": "profile",
+      "route": "profiles",
+      "label": "Profiles",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "section": {
+      "entity": "section",
+      "route": "sections",
+      "label": "Sections",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "space": {
+      "entity": "space",
+      "route": "spaces",
+      "label": "Spaces",
+      "actions": [
+        {
+          "name": "list-members",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "add-member",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "remove-member",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "bulk-add-members",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "component": {
+      "entity": "component",
+      "route": "components",
+      "label": "Components",
+      "actions": [
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "script": {
+      "entity": "script",
+      "route": "scripts",
+      "label": "Scripts",
+      "actions": [
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        }
+      ]
+    },
+    "style": {
+      "entity": "style",
+      "route": "styles",
+      "label": "Styles",
+      "actions": [
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "restore",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        }
+      ]
+    },
+    "stylesheet": {
+      "entity": "stylesheet",
+      "route": "stylesheets",
+      "label": "Stylesheets",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "template": {
+      "entity": "template",
+      "route": "templates",
+      "label": "Templates",
+      "actions": [
+        {
+          "name": "duplicate",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        }
+      ]
+    },
+    "form-submission": {
+      "entity": "form-submission",
+      "route": "form-submissions",
+      "label": "Form Submissions",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "address": {
+      "entity": "address",
+      "route": "addresses",
+      "label": "Addresses",
+      "actions": []
+    },
+    "article": {
+      "entity": "article",
+      "route": "articles",
+      "label": "Articles",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "contact": {
+      "entity": "contact",
+      "route": "contacts",
+      "label": "Contacts",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "spaces",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "unsubscribe-everything",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "customer-results",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "lifetime-value",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "by-campaign",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "dent": {
+      "entity": "dent",
+      "route": "dent",
+      "label": "Dent",
+      "actions": [
+        {
+          "name": "health-errors",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "analytics-results",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "overview-analytics",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "breakdown",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "export-breakdown",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "daily-totals",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "visitor-event-feed",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "return-on-ad-spend",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "ad-spend",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "save-ad-spend",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "realtime-visitor-events",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "realtime-sessions",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "realtime-journeys",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "realtime-transactions",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "group": {
+      "entity": "group",
+      "route": "groups",
+      "label": "Groups",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "membership": {
+      "entity": "membership",
+      "route": "memberships",
+      "label": "Memberships",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "order": {
+      "entity": "order",
+      "route": "orders",
+      "label": "Orders",
+      "actions": [
+        {
+          "name": "refund",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "cancel",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "comments",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "add-comment",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "revenue-by-date",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "revenue-by-product",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "results",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "revenue-by-source",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "revenue-by-campaign",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "attributed-revenue",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "page": {
+      "entity": "page",
+      "route": "pages",
+      "label": "Pages",
+      "actions": [
+        {
+          "name": "set-homepage",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "export",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "import",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "system",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "product": {
+      "entity": "product",
+      "route": "products",
+      "label": "Products",
+      "actions": [
+        {
+          "name": "search",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "settings": {
+      "entity": "settings",
+      "route": "settings",
+      "label": "Settings",
+      "actions": [
+        {
+          "name": "update-icon",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "theme",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "save-theme",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "reset-theme",
+          "target": "collection",
+          "mode": "destroy"
+        },
+        {
+          "name": "recompile-styles",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "mail-settings",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "mail-stats",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "send-test",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "store-settings",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "save-store-settings",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "tag": {
+      "entity": "tag",
+      "route": "tags",
+      "label": "Tags",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "funnel": {
+      "entity": "funnel",
+      "route": "funnels",
+      "label": "Funnels",
+      "actions": [
+        {
+          "name": "export",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "analytics",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "step-analytics",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "offer-analytics",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "experiments",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "tracking-overrides",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "state",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "duplicate",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "archive",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "unarchive",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "set-homepage",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "dashboard",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "revenue-results",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "step-results",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "step-comparison",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "import",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "save-graph",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "step": {
+      "entity": "step",
+      "route": "steps",
+      "label": "Steps",
+      "actions": [
+        {
+          "name": "set-homepage",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "set-funnel-home",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "design",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "replace-design",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "extract-styles",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "rename",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "duplicate",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "experiment": {
+      "entity": "experiment",
+      "route": "experiments",
+      "label": "FunnelTests",
+      "actions": [
+        {
+          "name": "declare-winner",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "create-version",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete-version",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "results",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "start",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "pause",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "reset",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "offer": {
+      "entity": "offer",
+      "route": "offers",
+      "label": "Offers",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "history",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "availability",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        }
+      ]
+    },
+    "broadcast": {
+      "entity": "broadcast",
+      "route": "broadcasts",
+      "label": "Broadcasts",
+      "actions": [
+        {
+          "name": "refresh-stats",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "import",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "refresh",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "publish-email",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        }
+      ]
+    },
+    "integration": {
+      "entity": "integration",
+      "route": "integrations",
+      "label": "Integrations",
+      "actions": [
+        {
+          "name": "authors",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "override-funnel",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "funnel-overrides",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "configure",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "connect",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "complete",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "enable",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "disable",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "disconnect",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "test",
+          "target": "member",
+          "mode": "remote"
+        }
+      ]
+    },
+    "link": {
+      "entity": "link",
+      "route": "links",
+      "label": "Links",
+      "actions": [
+        {
+          "name": "set-as-primary",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "duplicate",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "recompute-analytics",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        }
+      ]
+    },
+    "audience": {
+      "entity": "audience",
+      "route": "audiences",
+      "label": "Audiences",
+      "actions": [
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "email": {
+      "entity": "email",
+      "route": "emails",
+      "label": "Emails",
+      "actions": [
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "send-test",
+          "target": "member",
+          "mode": "remote"
+        }
+      ]
+    },
+    "email-send": {
+      "entity": "email-send",
+      "route": "email-sends",
+      "label": "EmailSends",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "segment": {
+      "entity": "segment",
+      "route": "segments",
+      "label": "Segments",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "notification": {
+      "entity": "notification",
+      "route": "notifications",
+      "label": "Notifications",
+      "actions": [
+        {
+          "name": "mark-read",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "mark-unread",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "preference": {
+      "entity": "preference",
+      "route": "preferences",
+      "label": "Preferences",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        }
+      ]
+    },
+    "payment-method": {
+      "entity": "payment-method",
+      "route": "payment-methods",
+      "label": "PaymentMethods",
+      "actions": [
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "set-default",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "assign-to-subscriptions",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "setup",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "subscription": {
+      "entity": "subscription",
+      "route": "subscriptions",
+      "label": "Subscriptions",
+      "actions": [
+        {
+          "name": "cancel",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "delete",
+          "target": "member",
+          "mode": "destroy"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "payments",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "pause",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "resume",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "switch",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "add-item",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "change-payment-method",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "assign-payment-method",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "skip",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "reschedule",
+          "target": "member",
+          "mode": "write"
+        },
+        {
+          "name": "renew-now",
+          "target": "member",
+          "mode": "remote"
+        },
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "remote"
+        },
+        {
+          "name": "contact-payment-methods",
+          "target": "collection",
+          "mode": "read"
+        }
+      ]
+    },
+    "webhook-attempt": {
+      "entity": "webhook-attempt",
+      "route": "webhook-attempts",
+      "label": "Webhook Attempts",
+      "actions": [
+        {
+          "name": "create",
+          "target": "collection",
+          "mode": "write"
+        },
+        {
+          "name": "get",
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
+        },
+        {
+          "name": "update",
+          "target": "member",
+          "mode": "write"
         }
       ]
     },
     "webhook-endpoint": {
       "entity": "webhook-endpoint",
+      "route": "webhook-endpoints",
       "label": "Webhook Endpoints",
       "actions": [
         {
           "name": "create",
-          "mode": "write",
-          "target": "collection"
+          "target": "collection",
+          "mode": "write"
         },
         {
           "name": "delete",
-          "mode": "destroy",
-          "target": "member"
-        },
-        {
-          "name": "list",
-          "mode": "read",
-          "target": "collection"
+          "target": "member",
+          "mode": "destroy"
         },
         {
           "name": "get",
-          "mode": "read",
-          "target": "member"
+          "target": "member",
+          "mode": "read"
+        },
+        {
+          "name": "list",
+          "target": "collection",
+          "mode": "read"
         },
         {
           "name": "update",
-          "mode": "write",
-          "target": "member"
+          "target": "member",
+          "mode": "write"
         }
       ]
     }

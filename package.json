@@ -1,18 +1,18 @@
 {
-  "name": "@parkerlabs/dent",
-  "version": "0.1.7",
+  "name": "@getdent/skill",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public"
   },
   "description": "Dent CLI and AI-agent skill installer for schema-driven Dent API operations.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/heyJordanParker/dent-cli.git"
+    "url": "git+https://github.com/getdent/skill.git"
   },
-  "homepage": "https://github.com/heyJordanParker/dent-cli/blob/main/Claude.md",
+  "homepage": "https://getdent.app",
   "bugs": {
-    "url": "https://github.com/heyJordanParker/dent-cli/issues"
+    "url": "https://github.com/getdent/skill/issues"
   },
   "type": "module",
   "bin": {
@@ -24,6 +24,13 @@
     "skill/",
     "scripts/",
     "dist/",
+    "skills/",
+    "plugin.json",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".cursor-plugin/",
+    ".agents/plugins/",
+    "assets/",
     "Claude.md"
   ],
   "scripts": {
@@ -31,8 +38,13 @@
     "check": "node cli/bin/dent.js check",
     "dent-skill": "node cli/bin/dent.js",
     "test": "node --test test/",
-    "prepack": "node scripts/build.js",
-    "check:workflows": "node scripts/check-workflows.js"
+    "prepack": "node scripts/build.js && npm run check:workflows && npm run check:design && npm run check:plugin",
+    "check:workflows": "node scripts/check-workflows.js",
+    "check:design": "node scripts/check-design-starters.js",
+    "check:plugin": "node scripts/check-plugin.js",
+    "check:clean": "node scripts/check-clean.js",
+    "snapshot:catalog": "node scripts/snapshot-catalog.js",
+    "version": "node scripts/build.js && git add skills .claude-plugin .codex-plugin .cursor-plugin .agents/plugins plugin.json"
   },
   "engines": {
     "node": ">=20"

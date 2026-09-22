@@ -1,10 +1,47 @@
 ---
-description: Design Dent Pages and Funnel Steps after copy is finished, using Designer JSON, tenant theme classes, and page-type leaves.
+description: Design Dent Pages and Funnel Steps after copy is finished, using Designer JSON, tenant theme utilities, and page-type leaves.
 ---
 
 # Design the Page
 
 Use this after `writing/copywriting.md` has produced finished copy. The failure it prevents: building visual scaffolding before the argument exists, or writing frontend code instead of a Dent Designer element tree.
+
+## The Design contract
+
+A design document is `{ "version": 1, "elements": [...] }`. Allowed document keys:
+`version`, `elements`, `stylesheets`, `scripts`, `builders`
+(DesignerService::validatedDocument). `version` must be 1. `elements` must be a list.
+
+Allowed element keys: `key`, `type`, `tag`, `id`, `styles`, `utilities`,
+`attributes`, `text`, `content`, `config`, `behaviors`, `children`; a `component`
+element adds `component`, `variant`, `properties`, `slots`
+(DesignerService::validateElementShapes).
+
+`classes` is not a key. It is a 422 `Unknown key: classes.`
+
+`utilities` is the Tailwind list. `styles` is a list of Style keys, never Tailwind.
+
+`key` must match `[a-z0-9][a-z0-9_-]*` and be unique across the whole document.
+
+`text` and `content` cannot both be present on one element.
+
+Revision: read `GET /api/v1/{owner}/{id}/design` → `{revision, design, owner}`; write
+`POST /api/v1/{owner}/{id}/replace-design` with `{"revision": <the string just read>, "design": {...}}`.
+A stale revision is a 409: re-read and re-apply. Owners: pages, articles,
+funnels/{f}/steps, templates, components, settings.
+
+`svg` config is `{ "tree": { "tag", "attributes", "content" }, "alt", "decorative" }` plus the optional `channels` (paint colors), `media` (an uploaded SVG file), `width`, `height`, `preserveAspectRatio`, `opacity`, and `link`
+(Elements/Svg.php). An `id` on an svg is rewritten to `key` at save.
+
+Publish rules (422 on a published owner, warning on a draft): every `form` needs a
+non-empty unique `id`, a `form-submit` descendant, and named unique fields; an
+`optin` behavior needs `config.email`; a `branch` needs `routes` plus a numeric
+`fallback`; expressions must parse; a named script key must exist. A `checkout`
+element needs the `checkout` behavior, `billing.email`, `billing.first_name`,
+`billing.last_name` bound fields, a `checkout-payment`, and a `checkout-submit`
+(DesignerService::validateCheckout).
+
+An unknown `type` is kept with the warning `element.type_unknown`.
 
 ## Process
 
@@ -29,18 +66,18 @@ Use this after `writing/copywriting.md` has produced finished copy. The failure 
 
 2. Create only a Dent Designer tree.
 
-   Dent output is JSON with `version` and `elements`. Each element uses the Designer vocabulary: `section`, `container`, `heading`, `text`, `button`, `image`, `list`, `list-item`, `quote`, `form`, fields, Checkout elements, components, repeaters, slots, and allowed behaviors.
+   Dent output is the bare document `{"version": 1, "elements": [...]}` — no `design` wrapper, no `revision` inside. Each element uses the Designer vocabulary: `section`, `container`, `heading`, `text`, `button`, `image`, `svg`, `list`, `list-item`, `quote`, `form`, fields, Checkout elements, components, repeaters, slots, and the eleven behaviors.
 
-   ### Use element structure plus theme-aware classes
-   Put Tailwind utility strings in each element's `classes` array. Resolve the design against the fixed tenant theme with classes such as `bg-background`, `bg-primary`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-card`, `border-border`, `shadow-elevated`, `rounded-2xl`, `font-sans`, and `tracking-tight`.
-   Never: write CSS files, React components, BEM selectors, container-query code, motion-library code, raw theme variables, or OKLCH color declarations for this task.
+   ### Use element structure plus theme-aware utilities
+   Put Tailwind utility strings in each element's `utilities` array. Resolve the design against the fixed tenant theme with utilities such as `bg-background`, `bg-primary`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-card`, `text-card-foreground`, `border-border`, `shadow-elevated`, `rounded-2xl`, `font-sans`, and `tracking-tight`.
+   Never: `classes` (a 422), write CSS files, React components, BEM selectors, container-query code, motion-library code, raw theme variables, or OKLCH color declarations for this task.
 
    ### Use the real behavior vocabulary
-   Forms use `form`, matching field `config.name` values, and behaviors such as `optin`, `validate-email`, `bento-optin`, `form-answer`, `send-login-code`, or `verify-login-code`. Checkout uses `checkout`, `checkout-payment`, `checkout-summary`, `checkout-submit`, `checkout-offer`, `checkout-bump`, `checkout-timer`, and `checkout-terms` as required.
+   Forms use `form` with an `id`, matching field `config.name` values, and the eleven behaviors: `branch`, `checkout`, `interaction`, `invoke-action`, `lightbox`, `optin`, `send-login-code`, `sign-out`, `unlock-link`, `validate-email`, `verify-login-code`. A behavior's `config` keys are that behavior's inputs and nothing else — `optin` takes `email`, `name`, `event` (`Behaviors/Optin.php`); `validate-email` takes `email`, `blockDisposable`, `blockRoles` (`Behaviors/ValidateEmail.php`); `checkout` takes `billing`, `gateway`, `note` (`Behaviors/Checkout.php`). Checkout uses `checkout`, `checkout-payment`, `checkout-summary`, `checkout-submit`, `checkout-offer`, `checkout-bump`, `checkout-timer`, and `checkout-terms` as required.
    Never: invent a generic redirect behavior or a new element type because a layout would be easier with it.
 
    ### Bound values are values, never markup or code
-   A `{{ ... }}` binding resolves to a value. In text, headings, classes, and ordinary attributes it renders as escaped display text; in URL slots it must resolve to a real navigable URL or the render fails. In raw-html, script, and style positions it renders as an inert literal — a quoted value the surrounding parser reads as data — so it cannot drive display or styling there. Put human-readable dynamic text in text or heading elements, and drive dynamic styling with a class binding, never a bound raw CSS value.
+   A `{{ ... }}` binding resolves to a value. In text, headings, utilities, and ordinary attributes it renders as escaped display text; in URL slots it must resolve to a real navigable URL or the render fails. In raw-html, script, and style positions it renders as an inert literal — a quoted value the surrounding parser reads as data — so it cannot drive display or styling there. Put human-readable dynamic text in text or heading elements, and drive dynamic styling with a class binding, never a bound raw CSS value.
    Never: rely on a `{{ }}` binding inside a raw CSS `style` value or a raw-html body to show readable text.
 
 3. Lay out the argument.
@@ -91,7 +128,15 @@ Use this after `writing/copywriting.md` has produced finished copy. The failure 
 
 6. Verify by rendering.
 
-   - Save or preview the Design through the Dent API surface that owns it: Page, Article, Funnel Step, Template, or Component.
+   - Save through the owner's two design routes, never a blind write. Read first, send the revision you just read, re-read on a 409:
+
+     ```
+     dent api pages <id> design                    # -> {"revision": "...", "design": {...}}
+     dent api pages <id> replace-design --data @design-write.json
+     ```
+
+     `design-write.json` is `{"revision": "<the string just read>", "design": {"version": 1, "elements": [...]}}`. A 409 means another writer moved the owner first: re-read the design, re-apply your elements onto what came back, and send again with the new revision.
+   - Read the `warnings` array the write returns. A draft owner reports publish problems as warnings; a published owner rejects the same problems with a 422.
    - Render the public or preview URL, not just the JSON.
    - Check mobile and desktop widths.
    - Confirm the first screen communicates the promise and next action.

@@ -1,0 +1,43 @@
+{
+  "name": "dent",
+  "version": "0.2.0",
+  "description": "Build and run a Dent Site through its schema-driven API: funnels, pages, offers, articles, courses, analytics.",
+  "author": {
+    "name": "Jordan Parker",
+    "url": "https://github.com/heyJordanParker"
+  },
+  "homepage": "https://getdent.app",
+  "repository": "https://github.com/getdent/skill",
+  "license": "MIT",
+  "keywords": [
+    "dent",
+    "funnels",
+    "landing-pages",
+    "courses",
+    "marketing",
+    "agent-skill"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dent",
+    "shortDescription": "Build your Dent funnels",
+    "longDescription": "Dent adds a skill that builds and runs a Dent Site through its first-party API: funnels, opt-in and sales pages, offers, checkout, courses, and analytics, driven by the dent CLI.",
+    "developerName": "Parker Labs",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://getdent.app",
+    "supportURL": "https://github.com/getdent/skill/issues",
+    "defaultPrompt": [
+      "Put my opt-in page live",
+      "Build a sales page for my course",
+      "How did last month go?"
+    ],
+    "brandColor": "#111111",
+    "logo": "./assets/logo.svg",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

@@ -5,12 +5,15 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, cpSync, chmodSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { manifestPaths } from './lib/manifests.js';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
 const providerConfig = JSON.parse(readFileSync(join(rootDir, 'providers.json'), 'utf8'));
 const sourcePath = join(rootDir, 'skill', 'Source.md');
+const pointerPath = join(rootDir, 'skill', 'Pointer.md');
 const distDir = join(rootDir, 'dist');
+const skillsDir = join(rootDir, 'skills', 'dent');
 const providers = providerConfig.providers;
 
 function ensureDir(path) {
@@ -50,7 +53,7 @@ function filterBlocks(text, mode) {
     if (skipNextBlankLine && line.trim() === '') continue;
 
     skipNextBlankLine = false;
-    output.push(line);
+    output.push(line.replace(/\s*<!-- dent:404 -->/g, ''));
   }
 
   return output.join('\n');
@@ -88,6 +91,15 @@ function compileSkill(destination, provider) {
     const scriptPath = join(destination, 'scripts', scriptName);
     if (existsSync(scriptPath)) chmodSync(scriptPath, 0o755);
   }
+}
+
+function compilePointer(destination, provider) {
+  ensureDir(destination);
+  const source = readFileSync(sourcePath, 'utf8');
+  const frontmatter = source.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/)?.[0];
+  if (!frontmatter) throw new Error('skill/Source.md has no frontmatter.');
+  const pointer = readFileSync(pointerPath, 'utf8');
+  writeFileSync(join(destination, 'SKILL.md'), replacePlaceholders(`${frontmatter}\n${pointer}`, provider));
 }
 
 function contentHash(root) {
@@ -199,12 +211,12 @@ function endRecord(entryCount, centralSize, centralOffset) {
   return header;
 }
 
-function createZip(sourceRoot, destinationZip) {
+function createZip(sourceRoot, destinationZip, archiveRoot = relative(dirname(sourceRoot), sourceRoot)) {
   const localParts = [];
   const centralParts = [];
   let offset = 0;
   for (const file of walkFiles(sourceRoot)) {
-    const relativePath = relative(dirname(sourceRoot), file).replaceAll('\\', '/');
+    const relativePath = join(archiveRoot, relative(sourceRoot, file)).replaceAll('\\', '/');
     const nameBuffer = Buffer.from(relativePath);
     const dataBuffer = readFileSync(file);
     const local = localHeader(nameBuffer, dataBuffer);
@@ -218,21 +230,48 @@ function createZip(sourceRoot, destinationZip) {
   writeFileSync(destinationZip, zip);
 }
 
+function rewriteManifestVersions() {
+  for (const manifestPath of manifestPaths) {
+    const path = join(rootDir, manifestPath);
+    const manifest = JSON.parse(readFileSync(path, 'utf8'));
+    manifest.version = packageJson.version;
+    if (manifest.metadata) manifest.metadata.version = packageJson.version;
+    if (manifest.plugins) manifest.plugins.find(plugin => plugin.name === 'dent').version = packageJson.version;
+    writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+}
+
 rmSync(distDir, { recursive: true, force: true });
 for (const provider of providers) {
   compileSkill(join(distDir, 'providers', provider.name, 'dent'), provider);
   writeManifest(join(distDir, 'providers', provider.name, 'dent'), provider);
   console.log(`Customized provider bundle through seam: ${provider.name}`);
 }
+rmSync(skillsDir, { recursive: true, force: true });
+const pointerProvider = providers.find(provider => provider.mode === 'cli');
+compilePointer(skillsDir, pointerProvider);
+writeManifest(skillsDir, { name: 'pointer' });
+rewriteManifestVersions();
 const webProvider = providers.find(provider => provider.mode === 'web');
 if (webProvider) {
-  createZip(join(distDir, 'providers', webProvider.name, 'dent'), join(distDir, 'providers', webProvider.name, 'dent.zip'));
   ensureDir(join(distDir, 'web'));
-  cpSync(join(distDir, 'providers', webProvider.name, 'dent.zip'), join(distDir, 'web', 'dent.zip'));
+  createZip(join(distDir, 'providers', webProvider.name, 'dent'), join(distDir, 'web', 'dent.skill'));
 }
+const openaiDir = join(distDir, 'openai');
+const openaiPluginDir = join(openaiDir, 'plugin');
+ensureDir(openaiPluginDir);
+cpSync(join(rootDir, 'plugin.json'), join(openaiPluginDir, 'plugin.json'));
+ensureDir(join(openaiPluginDir, '.codex-plugin'));
+cpSync(join(rootDir, '.codex-plugin', 'plugin.json'), join(openaiPluginDir, '.codex-plugin', 'plugin.json'));
+cpSync(skillsDir, join(openaiPluginDir, 'skills', 'dent'), { recursive: true });
+cpSync(join(rootDir, 'assets'), join(openaiPluginDir, 'assets'), { recursive: true });
+cpSync(join(rootDir, 'LICENSE'), join(openaiPluginDir, 'LICENSE'));
+createZip(openaiPluginDir, join(openaiDir, 'dent-plugin.zip'), '');
 
 console.log(`Built Dent skill v${packageJson.version}`);
 for (const provider of providers) {
   console.log(`  dist/providers/${provider.name}/dent`);
 }
-if (webProvider) console.log(`  dist/providers/${webProvider.name}/dent.zip`);
+if (webProvider) console.log('  dist/web/dent.skill');
+console.log('  dist/openai/dent-plugin.zip');
+console.log(`  skills/dent (pointer v${packageJson.version})`);
