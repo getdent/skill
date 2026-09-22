@@ -22,16 +22,13 @@ Use Dent's words exactly: Funnel, Funnel Step, Offer, Product, Order, Cart, Chec
 1. Open the session yourself. The operator never touches a terminal.
 
    <!-- dent:cli:start -->
-   - IF `dent` is not on PATH, run each Dent CLI command as `npx @getdent/skill@latest <command>`.
-   - Run the check, then the update only when the check printed an update line, then the identity read. You run them; never hand one back to the operator.
+   - IF `dent` is not on PATH, install it once with `npm install -g @getdent/skill`. IF that install is refused, run each Dent CLI command as `npx @getdent/skill@latest <command>`.
+   - This text came from `dent skill`. IF its first line said the Dent CLI is behind, run `dent update`, then `dent skill` again and follow the fresh text. See `references/updating-the-skill.md`.
+   - Then the identity read. You run it; never hand it back to the operator.
 
      ```bash
-     dent check
-     dent update   # only after `dent check` printed an update line; then `dent check` again
      dent whoami
      ```
-
-   - `dent check` compares the installed skill and the CLI against the published package. When it prints an update line, run `dent update` and `dent check` again before any write. See `references/updating-the-skill.md`.
    - IF `dent whoami` fails, run `dent login --no-open`. It prints the authorize URL and blocks while it waits for the browser to come back. You cannot open the operator's browser, so give them that URL in one plain line and wait for the command to return.
 
      ```bash

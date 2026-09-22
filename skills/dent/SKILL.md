@@ -3,7 +3,7 @@ name: dent
 description: "Build and run a Dent Site through its first-party API: Funnels, Pages, Offers, Articles, Courses, Spaces, Analytics. Trigger on Dent, funnel, opt-in page, sales page, checkout, course. Do not trigger for WordPress-only work."
 license: MIT
 metadata:
-  version: "0.2.1"
+  version: "0.3.0"
   homepage: "https://getdent.app"
 ---
 
@@ -17,6 +17,6 @@ Run this first, then follow what it prints:
 dent skill
 ```
 
-- IF `dent` is not on PATH, run `npx @getdent/skill@latest skill` instead, and run every later `dent` command the same way.
+- IF `dent` is not on PATH, install it once with `npm install -g @getdent/skill`, then run `dent skill`. IF that install is refused (no permission to the global npm folder), run this and every later `dent` command as `npx @getdent/skill@latest <command>`.
 - A reference the skill names, such as `references/interview.md`, is printed by `dent skill references/interview.md`.
 - The skill and CLI live at [github.com/getdent/skill](https://github.com/getdent/skill).

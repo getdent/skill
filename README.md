@@ -14,13 +14,13 @@ Pick the row for the AI you use. Use one install method per machine; two copies 
 
 | You use | Install | Updates |
 |---|---|---|
-| **Claude Code** (recommended) | `/plugin marketplace add getdent/skill` then `/plugin install dent@getdent` | Automatic: once a day, in the background, the plugin fetches a newer release when npm has one |
+| **Claude Code** (recommended) | `/plugin marketplace add getdent/skill` then `/plugin install dent@getdent` | Automatic, same pointer. The pointer plugin itself refreshes from GitHub when you turn on auto-update for the `getdent` marketplace under `/plugin` → Marketplaces, or run `/plugin marketplace update getdent` then `/plugin update dent@getdent` |
 | **Codex CLI and Codex app** | `codex plugin marketplace add getdent/skill` then `codex plugin add dent@getdent` | Automatic: Codex pulls the marketplace from GitHub in the background at every startup; `codex plugin marketplace upgrade` forces it |
 | **Codex app, ChatGPT** (once Dent is listed in the OpenAI Plugins Directory) | Plugins → search "Dent" → Install | Automatic through the directory |
 | **ChatGPT Business / Enterprise workspace** | An admin imports `getdent/skill` as a plugin marketplace from GitHub (Workspace settings → Plugins); the workspace then sees Dent in Work mode and Codex | Daily sync from GitHub |
 | **Cursor, Gemini CLI, Copilot, Windsurf, Amp, OpenCode, Kiro, Cline, Roo, Goose, Zed, OpenClaw, or any of 50+ [Agent Skills](https://agentskills.io) hosts** | `npx skills add getdent/skill -g` (add `-a cursor`, `-a codex`, … to pick agents) | Automatic: the installed file is a pointer; the skill's first step keeps the `dent` CLI current |
 | **Gemini CLI** (native) | `gemini skills install https://github.com/getdent/skill` | Automatic, same pointer |
-| **claude.ai, Claude Desktop, Cowork** | Download `dent.skill` (a zip) from the [latest release](https://github.com/getdent/skill/releases/latest) (v0.2.0 and up), then Customize → Skills → + → Upload a skill. Turn on "Code execution and file creation" first. | Re-download and re-upload |
+| **claude.ai, Claude Desktop, Cowork** | Download `dent.skill` (a zip) from the [latest release](https://github.com/getdent/skill/releases/latest) (v0.2.0 and up), then Customize → Skills → + → Upload a skill. Turn on "Code execution and file creation" first; your workspace's network setting must allow your Dent site's domain. | Re-download and re-upload |
 | **npm** (Claude Code and Codex skill folders) | `npm install -g @getdent/skill` then `dent install` | Automatic, same pointer; `dent update` upgrades the CLI by hand |
 | **Manual** | `git clone https://github.com/getdent/skill` and symlink `skills/dent` into your agent's skills folder | Automatic, same pointer |
 
@@ -30,11 +30,9 @@ Then tell your agent, in any of them:
 Log me in to Dent with `dent login --no-open` and hand me the browser link so I can sign in and authorize.
 ```
 
-On every host with a terminal, the skill runs `dent check`, then `dent update` when something is stale, then `dent whoami` at the start of every session, runs the CLI through `npx @getdent/skill@latest` when `dent` is not installed, and hands you a browser link to sign in. The agent never sees a token there: you sign in and click Authorize yourself. claude.ai is the one exception, below.
+On every host with a terminal, the skill runs `dent skill` at the start of every session, then `dent whoami`, and hands you a browser link to sign in. When `dent` is not on PATH the agent installs it once with `npm install -g @getdent/skill`, and only when that install is refused does it run every command through `npx @getdent/skill@latest`. The agent never sees a token there: you sign in and click Authorize yourself. claude.ai is the one exception, below.
 
-Updates, per row: the pointer never goes stale, so the only thing that can be behind is the `dent` CLI. The skill's first step runs `dent check`, which names a stale CLI with the exact upgrade command, and the agent runs it before touching your Site. Claude Code and Codex also refresh the pointer plugin by themselves. claude.ai uploads are the one place you re-upload by hand, because that host has no shell to run `dent skill`.
-
-Claude Code shows you the one command the plugin runs to fetch the skill, `npx --yes --prefer-offline @getdent/skill@latest plugin-path`, and asks you to accept it once. Claude Code re-runs it in the background after each session starts, never on the prompt path. The command itself asks npm at most once a day, and only when npm has a newer release does it download it and swap in the new skill. A release lands within a day of publishing, at the next session start after that.
+Updates, per row: the pointer never goes stale, so the only thing that can be behind is the `dent` CLI. `dent skill` asks npm once a day, and when a newer release exists its first line says so with the exact command, `dent update`, which the agent runs before touching your Site. `dent update` upgrades the CLI through npm and rewrites the pointer in every harness it finds. claude.ai uploads are the one place you re-upload by hand, because that host has no shell to run `dent skill`.
 
 claude.ai has no terminal, so the web variant asks you once to paste a Dent personal access token into the chat and reaches your Site over HTTP from there.
 
@@ -93,7 +91,7 @@ dent api contacts           # list contacts
 dent api contacts 123       # read one
 dent api contacts --data '{"email":"person@example.com"}'   # create
 dent skill                  # print the skill; `dent skill references/<path>` prints one reference
-dent check                  # are the CLI, the skill pointer, and the plugin current? (asks npm)
+dent check                  # is the CLI current, and does every installed pointer match it? (asks npm)
 dent update                 # upgrade the CLI when npm has a newer one, then refresh the pointer
 dent logout                 # remove the stored credential; revokes the token on Dent when it knows the token's id
 ```

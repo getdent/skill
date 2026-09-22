@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { access, cp, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, lstat, mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -536,25 +536,6 @@ test('status resolves account details from the catalog', async t => {
   assert.equal(stub.apiRequests.at(-1).path, '/api/v1/account/details');
 });
 
-test('check compares the CLI and a plugin copy against the registry', async t => {
-  const packageVersion = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8')).version;
-  const [major, minor, patch] = packageVersion.split('.').map(Number);
-  const newerVersion = `${major}.${minor}.${patch + 1}`;
-  const registry = createServer((request, response) => sendJson(response, 200, { version: newerVersion }));
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  await mkdir(join(directory, 'skills', 'dent'), { recursive: true });
-  await writeFile(join(directory, 'skills', 'dent', 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  const result = await runDent(['check', '--quiet', '--plugin-root', directory], { configDir: join(directory, 'config'), env: { HOME: directory, DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest` } });
-  assertSuccess(result);
-  const escape = value => value.replaceAll('.', '\\.');
-  assert.match(result.stdout, new RegExp(`Dent CLI v${escape(packageVersion)} is behind v${escape(newerVersion)}`));
-  assert.match(result.stdout, new RegExp(`Dent skill \\(claude plugin at .*/skills/dent\\) v0\\.1\\.6 is behind v${escape(newerVersion)}\\. Run: /plugin update dent@getdent`));
-});
-
 test('skill prints the served skill body and its references, and refuses paths outside the bundle', async () => {
   const printed = await runDent(['skill']);
   assertSuccess(printed);
@@ -565,7 +546,7 @@ test('skill prints the served skill body and its references, and refuses paths o
 
   const reference = await runDent(['skill', 'references/interview.md']);
   assertSuccess(reference);
-  assert.equal(reference.stdout, await readFile(join(repoRoot, 'dist', 'providers', 'claude-code', 'dent', 'references', 'interview.md'), 'utf8'));
+  assert.equal(reference.stdout, await readFile(join(repoRoot, 'dist', 'cli', 'dent', 'references', 'interview.md'), 'utf8'));
 
   const escaped = await runDent(['skill', '../../../package.json']);
   assert.equal(escaped.code, 1);
@@ -578,72 +559,9 @@ test('the built skills/dent is a pointer that carries the source frontmatter and
   const description = text => text.match(/^description: (.*)$/m)[1];
   assert.equal(description(pointer), description(source));
   assert.match(pointer, /^```bash\ndent skill\n```$/m);
-  assert.match(pointer, /npx @getdent\/skill@latest skill/);
+  assert.match(pointer, /npm install -g @getdent\/skill/);
+  assert.match(pointer, /npx @getdent\/skill@latest <command>/);
   await assert.rejects(access(join(repoRoot, 'skills', 'dent', 'references')), { code: 'ENOENT' });
-});
-
-test('plugin-path prints the packaged plugin directory and stamps the daily registry read', async t => {
-  const packageVersion = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8')).version;
-  let registryHits = 0;
-  const registry = createServer((request, response) => {
-    registryHits += 1;
-    sendJson(response, 200, { version: packageVersion });
-  });
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const env = { DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest` };
-
-  const first = await runDent(['plugin-path'], { configDir: join(directory, 'config'), env });
-  assertSuccess(first);
-  assert.equal(first.stdout, `${repoRoot}\n`);
-  assert.equal(registryHits, 1);
-  assert.equal((await readFile(join(directory, 'config', 'plugin-refresh'), 'utf8')).trim(), packageVersion);
-
-  const second = await runDent(['plugin-path'], { configDir: join(directory, 'config'), env });
-  assertSuccess(second);
-  assert.equal(second.stdout, `${repoRoot}\n`);
-  assert.equal(registryHits, 1);
-});
-
-test('plugin-path prints the path without the registry when the stamp is fresh or the registry is down', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const down = await runDent(['plugin-path'], { configDir: join(directory, 'config'), env: { DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' } });
-  assertSuccess(down);
-  assert.equal(down.stdout, `${repoRoot}\n`);
-  await assert.rejects(access(join(directory, 'config', 'plugin-refresh')), { code: 'ENOENT' });
-});
-
-test('plugin-path re-runs npx online once a day when the registry is ahead', async t => {
-  const registry = createServer((request, response) => sendJson(response, 200, { version: '99.0.0' }));
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const bin = join(directory, 'bin');
-  const npxArgs = join(directory, 'npx-args');
-  await mkdir(bin, { recursive: true });
-  await writeFile(join(bin, 'npx'), `#!/bin/sh\nprintf '%s\\n' \"$@\" > ${npxArgs}\necho /fresh/plugin\n`, { mode: 0o755 });
-
-  const result = await runDent(['plugin-path'], {
-    configDir: join(directory, 'config'),
-    env: { DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest`, PATH: `${bin}:${process.env.PATH}` },
-  });
-
-  assertSuccess(result);
-  assert.equal(result.stdout, '/fresh/plugin\n');
-  assert.deepEqual((await readFile(npxArgs, 'utf8')).trim().split('\n'), ['--yes', '--prefer-online', '@getdent/skill@latest', 'plugin-path', '--fresh']);
-
-  const again = await runDent(['plugin-path'], {
-    configDir: join(directory, 'config'),
-    env: { DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest`, PATH: `${bin}:${process.env.PATH}` },
-  });
-  assertSuccess(again);
-  assert.equal(again.stdout, `${repoRoot}\n`);
 });
 
 test('readInstalledVersion reads metadata.version and the legacy version', async t => {
@@ -664,149 +582,24 @@ test('readInstalledVersion reads metadata.version and the legacy version', async
 
   assert.equal(result.code, 2);
   assert.match(result.stdout, /Registry unreachable; compared against the local package only\./);
-  assert.match(result.stdout, /Found Claude Code(?:, Claude Code)?: .*\.claude\/skills\/dent \(installed v0\.2\.0\)/);
-  assert.match(result.stdout, /Found Codex(?:, Codex)?: .*\.agents\/skills\/dent \(installed v0\.1\.6\)/);
+  assert.match(result.stdout, /Found Claude Code: .*\.claude\/skills\/dent \(installed v0\.2\.0\)/);
+  assert.match(result.stdout, /Found Codex: .*\.agents\/skills\/dent \(installed v0\.1\.6\)/);
+  assert.equal(result.stdout.match(/Found Claude Code/g).length, 1, 'home equal to the project root lists each harness once');
 });
 
-test('check discovers a plugin install from installed_plugins.json', async t => {
-  const registry = createServer((request, response) => sendJson(response, 200, { version: '0.1.8' }));
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
+test('update rewrites only installed pointers and never adds one beside a plugin install', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
-  const installPath = join(directory, 'plugin');
-  await mkdir(join(installPath, 'skills', 'dent'), { recursive: true });
-  await writeFile(join(installPath, 'skills', 'dent', 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
   await mkdir(join(directory, '.claude', 'plugins'), { recursive: true });
-  await writeFile(join(directory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({
-    version: 2,
-    plugins: { 'dent@claude-plugins-official': [{ scope: 'user', installPath, version: '0.1.6' }] },
-  }));
 
-  const result = await runDent(['check'], {
-    cwd: directory,
+  const result = await runDent(['update', '--skip-upgrade', '--dir', directory], {
     configDir: join(directory, 'config'),
-    env: { HOME: directory, DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest` },
+    env: { HOME: directory, DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' },
   });
 
   assertSuccess(result);
-  assert.match(result.stdout, new RegExp(`Found claude plugin: ${installPath}/skills/dent`));
-  assert.match(result.stdout, /Run: \/plugin update dent@getdent/);
-  assert.doesNotMatch(result.stdout, /Dent skill is not installed/);
-});
-
-test('update leaves a plugin-only install alone', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const installPath = join(directory, 'plugin');
-  await mkdir(join(installPath, 'skills', 'dent'), { recursive: true });
-  await writeFile(join(installPath, 'skills', 'dent', 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await mkdir(join(directory, '.claude', 'plugins'), { recursive: true });
-  await writeFile(join(directory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({
-    version: 2,
-    plugins: { 'dent@getdent': [{ scope: 'user', installPath, version: '0.1.6' }] },
-  }));
-
-  const result = await runDent(['update', '--skip-upgrade'], {
-    cwd: directory,
-    configDir: join(directory, 'config'),
-    env: { HOME: directory },
-  });
-
-  assertSuccess(result);
-  await assert.rejects(access(join(directory, '.claude', 'skills', 'dent')), { code: 'ENOENT' });
-  await assert.rejects(access(join(directory, 'skills', 'dent')), { code: 'ENOENT' });
-  assert.match(result.stdout, /\/plugin update dent@getdent/);
-  assert.doesNotMatch(result.stdout, /Installed for/);
-});
-
-test('update upgrades the CLI for a plugin-only install', async t => {
-  const registry = createServer((request, response) => sendJson(response, 200, { version: '9.9.9' }));
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const installPath = join(directory, 'plugin');
-  const bin = join(directory, 'bin');
-  await mkdir(join(installPath, 'skills', 'dent'), { recursive: true });
-  await writeFile(join(installPath, 'skills', 'dent', 'SKILL.md'), "version: '0.1.6'\n");
-  await mkdir(join(directory, '.claude', 'plugins'), { recursive: true });
-  await writeFile(join(directory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({
-    version: 2,
-    plugins: { 'dent@getdent': [{ scope: 'user', installPath, version: '0.1.6' }] },
-  }));
-  await mkdir(bin, { recursive: true });
-  const npmArgs = join(directory, 'npm-args');
-  const dentArgs = join(directory, 'dent-args');
-  await writeFile(join(bin, 'npm'), `#!/bin/sh\nprintf '%s\\n' \"$@\" > ${npmArgs}\n`, { mode: 0o755 });
-  await writeFile(join(bin, 'dent'), `#!/bin/sh\nprintf '%s\\n' \"$@\" > ${dentArgs}\n`, { mode: 0o755 });
-
-  const result = await runDent(['update'], {
-    cwd: directory,
-    configDir: join(directory, 'config'),
-    env: { HOME: directory, DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest`, PATH: `${bin}:${process.env.PATH}` },
-  });
-
-  assertSuccess(result);
-  assert.deepEqual((await readFile(npmArgs, 'utf8')).trim().split('\n'), ['root', '-g']);
-  await assert.rejects(access(dentArgs), { code: 'ENOENT' });
-  await assert.rejects(access(join(directory, '.claude', 'skills', 'dent')), { code: 'ENOENT' });
-  await assert.rejects(access(join(directory, 'skills', 'dent')), { code: 'ENOENT' });
-});
-
-test('check treats a plugin cache shared with copied installs as a plugin', async t => {
-  const registry = createServer((request, response) => sendJson(response, 200, { version: '0.1.8' }));
-  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
-  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
-  const address = registry.address();
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const shared = join(directory, 'dotfiles', 'dent');
-  const plugin = join(directory, 'plugin');
-  await mkdir(shared, { recursive: true });
-  await writeFile(join(shared, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await mkdir(join(directory, '.claude', 'skills'), { recursive: true });
-  await mkdir(join(directory, '.agents', 'skills'), { recursive: true });
-  await mkdir(join(plugin, 'skills'), { recursive: true });
-  await symlink(shared, join(directory, '.claude', 'skills', 'dent'));
-  await symlink(shared, join(directory, '.agents', 'skills', 'dent'));
-  await symlink(shared, join(plugin, 'skills', 'dent'));
-
-  const result = await runDent(['check', '--plugin-root', plugin], {
-    cwd: directory,
-    configDir: join(directory, 'config'),
-    env: { HOME: directory, DENT_REGISTRY_URL: `http://127.0.0.1:${address.port}/latest` },
-  });
-
-  assertSuccess(result);
-  assert.match(result.stdout, /Found claude plugin: .*\/plugin\/skills\/dent \(installed v0.1.6\)/);
-  assert.equal((result.stdout.match(/Dent skill \(claude plugin at /g) || []).length, 1);
-  assert.match(result.stdout, /Dent skill \(claude plugin at .*\/dotfiles\/dent\) v0.1.6 is behind v0.1.8. Run: \/plugin update dent@getdent/);
-  assert.doesNotMatch(result.stdout, /Run: dent update/);
-});
-
-test('update refreshes copied installs before printing plugin guidance', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const copied = join(directory, '.claude', 'skills', 'dent');
-  const plugin = join(directory, 'plugin');
-  await mkdir(copied, { recursive: true });
-  await mkdir(join(plugin, 'skills', 'dent'), { recursive: true });
-  await writeFile(join(copied, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await writeFile(join(plugin, 'skills', 'dent', 'SKILL.md'), "version: '0.1.6'\n");
-
-  const result = await runDent(['update', '--skip-upgrade', '--plugin-root', plugin], {
-    configDir: join(directory, 'config'),
-    env: { HOME: directory },
-  });
-
-  assertSuccess(result);
-  assert.match(await readFile(join(copied, 'SKILL.md'), 'utf8'), /name: dent/);
-  assert.match(result.stdout, /Installed for Claude Code/);
-  assert.match(result.stdout, /\/plugin update dent@getdent/);
-  assert.ok(result.stdout.indexOf('Installed for Claude Code') < result.stdout.indexOf('/plugin update dent@getdent'));
+  assert.match(result.stdout, /Dent skill is not installed\. Run `dent install`\./);
+  await assert.rejects(access(join(directory, '.claude', 'skills')), { code: 'ENOENT' });
 });
 
 test('npx update refreshes copied installs after finding a newer registry version', async t => {
@@ -945,82 +738,6 @@ test('a symlinked CLI runs and importing the CLI stays silent', async t => {
   assert.equal(imported.stdout, '');
 });
 
-test('check discovers a Codex plugin install without copying it on update', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const skill = join(directory, '.codex', 'plugins', 'cache', 'getdent', 'dent', '0.1.6', 'skills', 'dent');
-  await mkdir(skill, { recursive: true });
-  await writeFile(join(skill, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-
-  const checked = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory, DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' } });
-  assert.equal(checked.code, 2);
-  assert.match(checked.stdout, /Registry unreachable; compared against the local package only\./);
-  assert.match(checked.stdout, /Found codex plugin: .*installed v0\.1\.6/);
-  assert.match(checked.stdout, /Run: codex plugin marketplace upgrade/);
-
-  const updated = await runDent(['update', '--skip-upgrade'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory } });
-  assertSuccess(updated);
-  assert.equal(await readFile(join(skill, 'SKILL.md'), 'utf8'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  assert.match(updated.stdout, /Run: codex plugin marketplace upgrade/);
-});
-
-test('check assigns a skills CLI lock owner without rewriting its copy', async t => {
-  // The real path, so HOME and the project root are the same string, as on a Linux runner.
-  const directory = await realpath(await mkdtemp(join(tmpdir(), 'dent-cli-test-')));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const skill = join(directory, '.agents', 'skills', 'dent');
-  await mkdir(skill, { recursive: true });
-  await writeFile(join(skill, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await writeFile(join(directory, '.agents', '.skill-lock.json'), JSON.stringify({ version: 3, skills: { dent: { source: 'getdent/skill', sourceType: 'github', sourceUrl: 'https://github.com/getdent/skill', skillFolderHash: 'fixture' } } }));
-
-  const checked = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory, DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' } });
-  assert.equal(checked.code, 2);
-  assert.match(checked.stdout, /Registry unreachable; compared against the local package only\./);
-  assert.match(checked.stdout, /Found skills CLI: .*installed v0\.1\.6/);
-  assert.doesNotMatch(checked.stdout, /skills CLI, skills CLI/);
-  assert.match(checked.stdout, /Run: npx skills update dent -g/);
-
-  const updated = await runDent(['update', '--skip-upgrade'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory } });
-  assertSuccess(updated);
-  assert.equal(await readFile(join(skill, 'SKILL.md'), 'utf8'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  assert.match(updated.stdout, /Run: npx skills update dent -g/);
-});
-
-test('update refreshes a copied install before Codex plugin guidance', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const copied = join(directory, '.claude', 'skills', 'dent');
-  const plugin = join(directory, '.codex', 'plugins', 'cache', 'getdent', 'dent', '0.1.6', 'skills', 'dent');
-  await mkdir(copied, { recursive: true });
-  await mkdir(plugin, { recursive: true });
-  await writeFile(join(copied, 'SKILL.md'), "version: '0.1.6'\n");
-  await writeFile(join(plugin, 'SKILL.md'), "version: '0.1.6'\n");
-
-  const result = await runDent(['update', '--skip-upgrade'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory } });
-  assertSuccess(result);
-  assert.match(await readFile(join(copied, 'SKILL.md'), 'utf8'), /name: dent/);
-  assert.ok(result.stdout.indexOf('Installed for Claude Code') < result.stdout.indexOf('Run: codex plugin marketplace upgrade'));
-});
-
-test('update refreshes a copied install without rewriting a skills CLI install', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const copied = join(directory, '.claude', 'skills', 'dent');
-  const locked = join(directory, '.agents', 'skills', 'dent');
-  await mkdir(copied, { recursive: true });
-  await mkdir(locked, { recursive: true });
-  await writeFile(join(copied, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await writeFile(join(locked, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  await writeFile(join(directory, '.agents', '.skill-lock.json'), JSON.stringify({ version: 3, skills: { dent: { source: 'getdent/skill', sourceType: 'github', sourceUrl: 'https://github.com/getdent/skill', skillFolderHash: 'fixture' } } }));
-
-  const result = await runDent(['update', '--skip-upgrade'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory } });
-
-  assertSuccess(result);
-  assert.match(await readFile(join(copied, 'SKILL.md'), 'utf8'), /name: dent/);
-  assert.equal(await readFile(join(locked, 'SKILL.md'), 'utf8'), "---\nname: dent\nversion: '0.1.6'\n---\n");
-  assert.match(result.stdout, /Run: npx skills update dent -g/);
-});
-
 test('api command resolves the catalog nested chain recursively', async t => {
   const catalog = JSON.parse(await readFile(join(repoRoot, 'scripts', 'schema-catalog.snapshot.json'), 'utf8'));
   const stub = await startDentStub({ catalog });
@@ -1057,4 +774,110 @@ test('readInstalledVersion ignores body text without frontmatter', async t => {
   await writeFile(join(skill, 'SKILL.md'), 'body\nversion: 9.9.9\n');
   const result = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory, DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' } });
   assert.match(result.stdout, /installed vunknown/);
+});
+
+async function startRegistry(t, version) {
+  let reads = 0;
+  const registry = createServer((request, response) => {
+    reads += 1;
+    sendJson(response, 200, { version });
+  });
+  await new Promise(resolveListen => registry.listen(0, '127.0.0.1', resolveListen));
+  t.after(() => new Promise(resolveClose => registry.close(resolveClose)));
+  return { url: `http://127.0.0.1:${registry.address().port}/latest`, get reads() { return reads; } };
+}
+
+test('update replaces a full copy with the pointer and removes its emptied directories', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const project = join(directory, 'project');
+  const skill = join(project, '.claude', 'skills', 'dent');
+  await mkdir(join(skill, 'references', 'writing'), { recursive: true });
+  await writeFile(join(skill, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\nold body\n");
+  await writeFile(join(skill, 'references', 'api.md'), 'old reference');
+  await writeFile(join(skill, 'references', 'writing', 'x.md'), 'nested reference');
+
+  const result = await runDent(['update', '--skip-upgrade', '--dir', project], {
+    configDir: join(directory, 'config'),
+    env: { HOME: directory, DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' },
+  });
+
+  assertSuccess(result);
+  assert.match(await readFile(join(skill, 'SKILL.md'), 'utf8'), /^```bash\ndent skill\n```$/m);
+  await assert.rejects(access(join(skill, 'references')), { code: 'ENOENT' });
+  const remaining = (await readdir(skill)).sort();
+  assert.deepEqual(remaining, ['.dent-skill.json', 'SKILL.md']);
+});
+
+test('check names a behind CLI first, then each pointer that differs from the package', async t => {
+  const registry = await startRegistry(t, '9.9.9');
+  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const skill = join(directory, '.claude', 'skills', 'dent');
+  await mkdir(skill, { recursive: true });
+  await writeFile(join(skill, 'SKILL.md'), "---\nname: dent\nversion: '0.1.6'\n---\n");
+  const env = { HOME: directory, DENT_REGISTRY_URL: registry.url };
+
+  const behind = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env });
+  assertSuccess(behind);
+  assert.match(behind.stdout, /^Dent CLI v\d+\.\d+\.\d+ is behind v9\.9\.9\. Run: dent update\n/);
+  assert.match(behind.stdout, /Dent skill pointer at .*\.claude\/skills\/dent differs from this package\. Run: dent update/);
+
+  assertSuccess(await runDent(['update', '--skip-upgrade', '--dir', directory], { configDir: join(directory, 'config'), env }));
+  const current = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env });
+  assertSuccess(current);
+  assert.match(current.stdout, /Dent skill pointer is up to date\./);
+  assert.doesNotMatch(current.stdout, /differs from this package/);
+
+  await writeFile(join(skill, 'SKILL.md'), `${await readFile(join(skill, 'SKILL.md'), 'utf8')}\nedited by hand\n`);
+  const edited = await runDent(['check'], { cwd: directory, configDir: join(directory, 'config'), env });
+  assertSuccess(edited);
+  assert.match(edited.stdout, /differs from this package/, 'an edited pointer with an untouched manifest is not current');
+});
+
+test('update upgrades the CLI through npm when the registry is ahead, then rewrites the pointer', async t => {
+  const registry = await startRegistry(t, '9.9.9');
+  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const globalRoot = join(directory, 'global');
+  const bin = join(directory, 'bin');
+  const npmArgs = join(directory, 'npm-args');
+  const skill = join(directory, 'project', '.claude', 'skills', 'dent');
+  await cp(repoRoot, join(globalRoot, '@getdent', 'skill'), { recursive: true });
+  await mkdir(skill, { recursive: true });
+  await mkdir(bin, { recursive: true });
+  await writeFile(join(skill, 'SKILL.md'), "version: '0.1.6'\n");
+  // The fake install "upgrades" the global copy to 9.9.9, so the pointer it writes proves the re-exec.
+  const globalPackage = join(globalRoot, '@getdent', 'skill');
+  const bump = file => `sed 's/version: "[^"]*"/version: "9.9.9"/' ${file} > ${file}.new\nmv ${file}.new ${file}\n`;
+  await writeFile(join(bin, 'npm'), `#!/bin/sh\nprintf '%s\\n' "$*" >> ${npmArgs}\nif [ "$1" = "root" ]; then echo ${globalRoot}; fi\nif [ "$1" = "install" ]; then\n${bump(join(globalPackage, 'package.json'))}${bump(join(globalPackage, 'skills', 'dent', 'SKILL.md'))}fi\n`, { mode: 0o755 });
+
+  const result = await runDent(['update', '--dir', join(directory, 'project')], {
+    configDir: join(directory, 'config'),
+    env: { HOME: directory, DENT_REGISTRY_URL: registry.url, PATH: `${bin}:${process.env.PATH}` },
+  });
+
+  assertSuccess(result);
+  assert.deepEqual((await readFile(npmArgs, 'utf8')).trim().split('\n'), ['install -g @getdent/skill@latest', 'root -g']);
+  assert.match(result.stdout, /Installed for Claude Code at .*\(v9\.9\.9\)\./, 'the upgraded package wrote the pointer');
+  assert.match(await readFile(join(skill, 'SKILL.md'), 'utf8'), /version: "9\.9\.9"/);
+});
+
+test('skill opens with the behind line when the registry is ahead, reads the registry once a day, and stays silent when it is down', async t => {
+  const registry = await startRegistry(t, '9.9.9');
+  const configDir = await createConfigDir(t);
+
+  const first = await runDent(['skill'], { configDir, env: { DENT_REGISTRY_URL: registry.url } });
+  assertSuccess(first);
+  assert.match(first.stdout, /^Dent CLI v\d+\.\d+\.\d+ is behind v9\.9\.9\. Run: dent update\nDent skill v/);
+  const second = await runDent(['skill'], { configDir, env: { DENT_REGISTRY_URL: registry.url } });
+  assertSuccess(second);
+  assert.match(second.stdout, /^Dent CLI v\d+\.\d+\.\d+ is behind v9\.9\.9\./);
+  assert.equal(registry.reads, 1);
+
+  const downConfigDir = await createConfigDir(t);
+  const down = await runDent(['skill'], { configDir: downConfigDir, env: { DENT_REGISTRY_URL: 'http://127.0.0.1:1/latest' } });
+  assertSuccess(down);
+  assert.match(down.stdout, /^Dent skill v\d+\.\d+\.\d+, served by the dent CLI\./);
+  assert.equal(await readFile(join(downConfigDir, 'cli-check'), 'utf8'), '\n', 'an unreachable registry is stamped so the next day costs no timeout');
 });

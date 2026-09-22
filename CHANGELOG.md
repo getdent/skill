@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- `dent update` no longer fails with `EISDIR` when it replaces an old full skill copy (one with `references/`) with the pointer; the emptied directories are removed.
+- `dent skill` asks npm once a day and, when the CLI is behind, opens with `Dent CLI vX is behind vY. Run: dent update`; the skill's session step reads that line and runs `dent update` before any Dent write.
+- `dent check` is one compare: the CLI against npm, and every installed pointer's files on disk against the package. `dent update` upgrades the CLI through npm and rewrites the pointers that exist; it never adds one beside a plugin install. The four-owner machinery and `dent plugin-path` are gone.
+- The skill installs the CLI once with `npm install -g @getdent/skill` and falls back to `npx @getdent/skill@latest <command>` only when that install is refused.
+- The Claude Code marketplace entry is a `github` source on `getdent/skill` instead of a command source. Existing installs: run `/plugin marketplace update getdent` then `/plugin update dent@getdent` once.
+- Build writes `dist/cli/dent` and `dist/web/dent` instead of three provider trees; `skill/scripts/context.js` is gone.
+- Windows: `npm` and `npx` spawn through the shell, bundle paths compare with `relative()`, and CI runs a Windows job.
+
 ## 0.2.1
 
 - `dent check` and `dent update` scan each harness root once when the home directory is the project root, so a skills-CLI copy keeps its owner and its label prints once.

@@ -2,34 +2,33 @@
 
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, cpSync, chmodSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, cpSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { manifestPaths } from './lib/manifests.js';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
-const providerConfig = JSON.parse(readFileSync(join(rootDir, 'providers.json'), 'utf8'));
 const sourcePath = join(rootDir, 'skill', 'Source.md');
 const pointerPath = join(rootDir, 'skill', 'Pointer.md');
 const distDir = join(rootDir, 'dist');
 const skillsDir = join(rootDir, 'skills', 'dent');
-const providers = providerConfig.providers;
+// Two texts come out of one source: `cli` is what `dent skill` prints, `web` is the claude.ai upload.
+const variants = [
+  { name: 'cli', mode: 'cli' },
+  { name: 'web', mode: 'web' },
+];
 
 function ensureDir(path) {
   mkdirSync(path, { recursive: true });
 }
 
-function replacePlaceholders(text, provider) {
-  return text
-    .replaceAll('{{VERSION}}', packageJson.version)
-    .replaceAll('{{PROVIDER}}', provider?.label || 'Claude web');
+function replacePlaceholders(text) {
+  return text.replaceAll('{{VERSION}}', packageJson.version);
 }
 
-function customizeProviderFile(text, provider, relativePath) {
-  const markdown = filterBlocks(replacePlaceholders(text, provider), provider.mode);
-  if (provider.customize === 'none' || !provider.customize) return markdown;
-  throw new Error(`Unknown provider customization for ${provider.name} at ${relativePath}: ${provider.customize}`);
+function customizeProviderFile(text, provider) {
+  return filterBlocks(replacePlaceholders(text), provider.mode);
 }
 
 function filterBlocks(text, mode) {
@@ -74,32 +73,24 @@ function copyDirectory(source, destination, provider = null) {
       copyDirectory(sourceEntry, destinationEntry, provider);
       continue;
     }
-    const sourceText = readFileSync(sourceEntry, 'utf8');
-    const markdown = customizeProviderFile(sourceText, provider, relative(source, sourceEntry).replaceAll('\\', '/'));
-    writeFileSync(destinationEntry, markdown);
+    writeFileSync(destinationEntry, customizeProviderFile(readFileSync(sourceEntry, 'utf8'), provider));
   }
 }
 
 function compileSkill(destination, provider) {
   ensureDir(destination);
   const source = readFileSync(sourcePath, 'utf8');
-  const markdown = customizeProviderFile(source, provider, 'SKILL.md');
-  writeFileSync(join(destination, 'SKILL.md'), markdown);
+  writeFileSync(join(destination, 'SKILL.md'), customizeProviderFile(source, provider));
   copyDirectory(join(rootDir, 'skill', 'references'), join(destination, 'references'), provider);
-  if (provider.mode === 'cli') copyDirectory(join(rootDir, 'skill', 'scripts'), join(destination, 'scripts'));
-  for (const scriptName of ['context.js']) {
-    const scriptPath = join(destination, 'scripts', scriptName);
-    if (existsSync(scriptPath)) chmodSync(scriptPath, 0o755);
-  }
 }
 
-function compilePointer(destination, provider) {
+function compilePointer(destination) {
   ensureDir(destination);
   const source = readFileSync(sourcePath, 'utf8');
   const frontmatter = source.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/)?.[0];
   if (!frontmatter) throw new Error('skill/Source.md has no frontmatter.');
   const pointer = readFileSync(pointerPath, 'utf8');
-  writeFileSync(join(destination, 'SKILL.md'), replacePlaceholders(`${frontmatter}\n${pointer}`, provider));
+  writeFileSync(join(destination, 'SKILL.md'), replacePlaceholders(`${frontmatter}\n${pointer}`));
 }
 
 function contentHash(root) {
@@ -242,21 +233,15 @@ function rewriteManifestVersions() {
 }
 
 rmSync(distDir, { recursive: true, force: true });
-for (const provider of providers) {
-  compileSkill(join(distDir, 'providers', provider.name, 'dent'), provider);
-  writeManifest(join(distDir, 'providers', provider.name, 'dent'), provider);
-  console.log(`Customized provider bundle through seam: ${provider.name}`);
+for (const variant of variants) {
+  compileSkill(join(distDir, variant.name, 'dent'), variant);
+  writeManifest(join(distDir, variant.name, 'dent'), variant);
 }
 rmSync(skillsDir, { recursive: true, force: true });
-const pointerProvider = providers.find(provider => provider.mode === 'cli');
-compilePointer(skillsDir, pointerProvider);
+compilePointer(skillsDir);
 writeManifest(skillsDir, { name: 'pointer' });
 rewriteManifestVersions();
-const webProvider = providers.find(provider => provider.mode === 'web');
-if (webProvider) {
-  ensureDir(join(distDir, 'web'));
-  createZip(join(distDir, 'providers', webProvider.name, 'dent'), join(distDir, 'web', 'dent.skill'));
-}
+createZip(join(distDir, 'web', 'dent'), join(distDir, 'web', 'dent.skill'));
 const openaiDir = join(distDir, 'openai');
 const openaiPluginDir = join(openaiDir, 'plugin');
 ensureDir(openaiPluginDir);
@@ -269,9 +254,7 @@ cpSync(join(rootDir, 'LICENSE'), join(openaiPluginDir, 'LICENSE'));
 createZip(openaiPluginDir, join(openaiDir, 'dent-plugin.zip'), '');
 
 console.log(`Built Dent skill v${packageJson.version}`);
-for (const provider of providers) {
-  console.log(`  dist/providers/${provider.name}/dent`);
-}
-if (webProvider) console.log('  dist/web/dent.skill');
+console.log('  dist/cli/dent (what `dent skill` prints)');
+console.log('  dist/web/dent.skill');
 console.log('  dist/openai/dent-plugin.zip');
 console.log(`  skills/dent (pointer v${packageJson.version})`);

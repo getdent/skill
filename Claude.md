@@ -25,7 +25,7 @@ echo "$DENT_PERSONAL_ACCESS_TOKEN" | dent login --site-url https://example.com -
 
 ## Why
 
-`@getdent/skill` ships one executable, `dent`, plus compiled AI-agent skill bundles so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into provider bundles that keep Claude Code, Codex, and Claude web aligned with Dent's schema catalog.
+`@getdent/skill` ships one executable, `dent`, plus the AI-agent skill so an operator's AI agent can operate Dent through the first-party schema-driven tenant API. One skill source compiles into two texts: the one `dent skill` prints for every shell-capable agent, and the claude.ai upload.
 
 Dent is multi-tenant. Each active target has a Dent Site URL and stored credential. The CLI stores verified credentials outside project directories, then agents can drive Dent's schema-driven tenant API.
 
@@ -52,7 +52,9 @@ If `dent` is not on `PATH`, run each Dent CLI command as `npx @getdent/skill@lat
 dent install
 ```
 
-The installer detects project and global harness folders such as `.claude` and `.agents`. It installs the compiled provider skill tree into `skills/dent`. Use `--force` with `install` or `update` to recopy even when the installed skill is already current.
+- The installer detects project and global harness folders such as `.claude` and `.agents`.
+- The installer writes the pointer skill into `skills/dent`.
+- `--force` with `install` or `update` recopies even when the installed skill is already current.
 
 Non-interactive examples:
 
@@ -67,27 +69,25 @@ Update and check:
 ```bash
 dent check
 dent check --quiet
-dent check --plugin-root <path>
 dent update
+dent update --skip-upgrade
 dent update --force
 ```
 
-- `dent check` asks npm for the latest version and names every stale CLI, skill, or plugin copy; a stale line is not an error, an unreachable registry exits 2.
+- `dent check` asks npm for the latest version and prints `Dent CLI vX is behind vY. Run: dent update` when the CLI is behind, then names every installed pointer (`--target <path>` names one) and the ones that differ from this package; a stale line is not an error, an unreachable registry exits 2.
 - `dent check --quiet` prints only the stale lines.
-- `dent check` knows four owners of an installed skill: a plain copy in a harness dir, a Claude Code plugin (`~/.claude/plugins/installed_plugins.json`, or `--plugin-root <path>`), a Codex plugin (`~/.codex/plugins/cache/*/dent/*/`), and a skills-CLI copy (`~/.agents/.skill-lock.json`, `skills-lock.json`).
-- `dent update` upgrades a global CLI through npm first, then refreshes every plain copy.
-- `dent update` never rewrites a skill another tool owns; it prints that owner's update command instead (`/plugin update dent@getdent`, `codex plugin marketplace upgrade`, `npx skills update dent -g`).
-- `dent plugin-path` prints the package root; the package root is the plugin for every host.
-- `dent plugin-path` asks the registry at most once a day (stamp file `plugin-refresh` in the config dir, mtime), and when the registry is ahead it re-runs `npx --yes --prefer-online @getdent/skill@latest plugin-path --fresh` and prints that path instead; an unreachable registry prints the current path and leaves the stamp alone.
-- The marketplace entry is a Claude Code command source running `npx --yes --prefer-offline @getdent/skill@latest plugin-path`; Claude Code runs it once per session in the background, and the daily stamp keeps npm traffic to one small read a day.
-- The published marketplace command resolves `plugin-path` from npm, so a release is on npm before it is on GitHub.
+- `dent update` runs `npm install -g @getdent/skill@latest` when npm is ahead, re-runs itself from the upgraded package (`npm root -g`), and rewrites every pointer that is already installed, never adding one beside a plugin install; under npx it re-runs through `npx --yes --prefer-online @getdent/skill@latest update --skip-upgrade` instead. `--skip-upgrade` skips the CLI upgrade.
+- A pointer is current when its manifest version matches the package and the hash of its files on disk matches the package manifest's `contentHash`, so an edited or half-written pointer is reported as differing.
+- `dent update` replaces an old full skill copy with the pointer and removes the emptied `references/` directories.
+- The Claude Code marketplace entry is a `github` source on `getdent/skill`; the plugin is the pointer, so it needs a refresh only when the pointer text changes (`/plugin marketplace update getdent` then `/plugin update dent@getdent`, or auto-update turned on for the `getdent` marketplace).
 - `skills/dent/` is the one skill every installer discovers (Vercel `skills`, openskills, reskill, Gemini CLI, the Claude and Codex plugin loaders), and it is a pointer: frontmatter from `skill/Source.md` plus the body of `skill/Pointer.md`, no references.
-- `dent skill` prints the full cli-variant skill from `dist/providers/<first cli provider>/dent/SKILL.md` without its frontmatter; `dent skill references/<path>` prints one reference and refuses any path outside that bundle. The skill text can never be older than the installed CLI.
+- `dent skill` prints `dist/cli/dent/SKILL.md` without its frontmatter, preceded by the behind line when npm is ahead (one registry read a day, stamp file `cli-check` in the config dir, mtime, stamped empty when the registry is unreachable so an outage costs one timeout a day; no line then); `dent skill references/<path>` prints one reference and refuses any path outside that bundle. The skill text can never be older than the installed CLI.
 - The claude.ai `.skill` upload stays the full web variant because that host has no shell.
 - The manifests are `plugin.json` (Agent Plugins 1.0.0, read by Cursor and pi), `.claude-plugin/plugin.json` + `marketplace.json`, `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json`, and `.cursor-plugin/plugin.json`.
 - `npm run build` writes `skills/dent`, `dist/web/dent.skill`, `dist/openai/dent-plugin.zip`, and rewrites the version in every manifest; `check:plugin` fails when any manifest's version drifts from `package.json`, and `check:clean` fails when a tracked generated file differs from a fresh build or a new one is untracked.
 - The SKILL.md frontmatter carries the version as `metadata.version` (the Agent Skills standard has no top-level `version`); the CLI reads that first and the legacy top-level `version` second.
-- `.github/workflows/ci.yml` runs build, tests, the three guards, and `check:clean` on every pull request and push to `main`.
+- `.github/workflows/ci.yml` runs build, tests, the three guards, and `check:clean` on every pull request and push to `main`, plus a Windows job that builds, prints the skill and a reference, installs and checks a pointer, and installs the package globally.
+- On Windows `npm` and `npx` are `.cmd` shims, so the CLI spawns them with `shell: true` there; bundle paths are compared with `relative()`, never with a `/` suffix.
 - `.github/workflows/publish.yml` runs when a `v*` tag is pushed: build, tests, guards, `check:clean`, tag equals `package.json` version, `npm publish` through npm trusted publishing (no token, skipped when that version is already on npm), then the GitHub release with `dist/web/dent.skill` and `dist/openai/dent-plugin.zip`.
 - The `version` npm script rebuilds and stages every manifest, so an `npm version` commit carries the bumped skill and manifests; pushing its tag starts the publish workflow.
 - npm trusted publishing is bound once on npmjs.com to `getdent/skill` and the workflow file `publish.yml`.
@@ -162,22 +162,17 @@ npm run build
 Outputs:
 
 - `skills/dent/` (tracked; the pointer every installer and plugin loader reads)
-- `dist/providers/claude-code/dent/`
-- `dist/providers/codex/dent/`
-- `dist/providers/claude-web/dent/`
-- `dist/web/dent.skill` (the claude.ai upload, attached to each GitHub release)
+- `dist/cli/dent/` (what `dent skill` prints)
+- `dist/web/dent/` and `dist/web/dent.skill` (the claude.ai upload, attached to each GitHub release)
 - `dist/openai/dent-plugin.zip` is the OpenAI Plugins Directory submission bundle, attached to each GitHub release.
 
-- Every provider passes through the provider customization seam in `scripts/build.js`.
-- The two `cli` providers produce identical content.
-- The `web` provider strips the `<!-- dent:cli -->` blocks and keeps the `<!-- dent:web -->` ones.
+- Both variants pass through `filterBlocks` in `scripts/build.js`: `cli` keeps the `<!-- dent:cli -->` blocks, `web` keeps the `<!-- dent:web -->` ones.
 
 ## Facts
 
 - `cli/bin/dent.js` owns the operator command surface, credential storage, target switching, catalog reads, and generic tenant API calls.
-- `providers.json` is the provider source of truth for both the build pipeline and installer.
-- `scripts/build.js` compiles `skill/Source.md` into `dist/providers/<provider>/dent`.
-- Every provider bundle passes through the build customization seam before it is written.
+- `providers.json` lists the harnesses the installer detects (`claude-code` → `.claude`, `codex` → `.agents`).
+- `scripts/build.js` compiles `skill/Source.md` into `dist/cli/dent` and `dist/web/dent`, and `skill/Pointer.md` into `skills/dent`.
 - A pasted token is verified against the tenant schema catalog before it is saved; a browser login saves the exchanged token first and verifies after, so a Site that is slow to answer never loses the login.
 - The CLI resolves entity names, actions, modes, and parameters from the schema catalog instead of hardcoded entity lists.
 - `skill/references/` contains authored skill prose owned outside this documentation pass.

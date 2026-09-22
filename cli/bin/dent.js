@@ -3,16 +3,21 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, chmodSync, renameSync, unlinkSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmdirSync, rmSync, statSync, writeFileSync, chmodSync, renameSync, unlinkSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
-import { dirname, join, resolve, relative } from 'node:path';
+import { dirname, isAbsolute, join, resolve, relative } from 'node:path';
 import { emitKeypressEvents } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const skillName = 'dent';
-const pluginName = 'dent';
-const marketplaceName = 'getdent';
+// npm and npx are .cmd shims on Windows; spawn finds them only through the shell.
+// On Windows npm and npx are .cmd shims, which Node refuses to spawn without a shell; every
+// argument is quoted so a path with a space or a cmd.exe metacharacter stays one argument.
+const npmShell = platform() === 'win32';
+function npmCommand(command, args, options) {
+  return spawnSync(command, npmShell ? args.map(arg => `"${arg.replaceAll('"', '\\"')}"`) : args, { ...options, shell: npmShell });
+}
 const liveTargetName = 'live';
 const localTargetName = 'local';
 const providerConfig = JSON.parse(readFileSync(join(packageRoot, 'providers.json'), 'utf8'));
@@ -40,11 +45,10 @@ Usage:
 
 Commands:
   install                 Install the Dent skill into a provider harness or target folder
-  update [--skip-upgrade] Refresh installed Dent skill files from this package
-  check [--quiet] [--plugin-root <path>]
-                          Check installed skill and CLI versions and print update guidance
-  plugin-path             Print the plugin directory; once a day, fetch a newer release first
-  skill [reference]       Print the Dent skill, or one of its references (references/<path>)
+  update [--skip-upgrade] Upgrade the CLI when npm has a newer one, then rewrite installed pointers
+  check [--quiet]         Compare the CLI with npm and the installed pointers with this package
+  skill [reference]       Print the Dent skill, or one of its references (references/<path>);
+                          the first line names a stale CLI, checked against npm once a day
   login                   Verify and store a Dent API credential
   logout                  Remove the stored Dent credential for the active target
   setup                   Point this checkout at a local Dent repo target
@@ -1085,10 +1089,12 @@ function detectHarnesses(projectRoot) {
     const projectHarness = join(projectRoot, provider.harnessDir);
     if (existsSync(projectHarness)) detections.push({ ...provider, key, scope: 'project', harnessPath: projectHarness, root: projectRoot });
   }
+  // When the home directory is the project root, one harness would be listed twice.
+  const seen = new Set(detections.map(item => realpathSync(item.harnessPath)));
   for (const key of harnessOrder) {
     const provider = providerFromValue(key);
     const globalHarness = join(homedir(), provider.harnessDir);
-    if (existsSync(globalHarness)) detections.push({ ...provider, key, scope: 'global', harnessPath: globalHarness, root: homedir() });
+    if (existsSync(globalHarness) && !seen.has(realpathSync(globalHarness))) detections.push({ ...provider, key, scope: 'global', harnessPath: globalHarness, root: homedir() });
   }
   return detections;
 }
@@ -1098,7 +1104,7 @@ function bundleSkillPath() {
 }
 
 function servedSkillPath() {
-  return join(packageRoot, 'dist', 'providers', providers.find(provider => provider.mode === 'cli').name, skillName);
+  return join(packageRoot, 'dist', 'cli', skillName);
 }
 
 function ensureBuilt() {
@@ -1106,17 +1112,20 @@ function ensureBuilt() {
   throw new Error('Compiled skill bundle is missing. Run `npm run build`.');
 }
 
-function skill(positionals) {
+async function skill(positionals) {
   ensureBuilt();
   const bundle = servedSkillPath();
   const name = positionals[0];
   if (!name) {
     const body = readFileSync(join(bundle, 'SKILL.md'), 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n\s*/, '');
-    process.stdout.write(`Dent skill v${readPackage().version}, served by the dent CLI. A reference named below is printed by \`dent skill references/<path>\`.\n\n${body}`);
+    const publishedVersion = await dailyPublishedVersion();
+    const stale = cliBehind(publishedVersion) ? `${cliBehindLine(publishedVersion)}\n` : '';
+    process.stdout.write(`${stale}Dent skill v${readPackage().version}, served by the dent CLI. A reference named below is printed by \`dent skill references/<path>\`.\n\n${body}`);
     return;
   }
   const file = resolve(bundle, name);
-  if (!file.startsWith(`${bundle}/`) || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
+  const inside = relative(bundle, file);
+  if (!inside || inside.startsWith('..') || isAbsolute(inside) || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
     const available = listFiles(bundle).filter(path => path.startsWith('references/'));
     throw new Error(`Unknown skill reference: ${name}. Available:\n${available.join('\n')}`);
   }
@@ -1149,17 +1158,31 @@ function readSkillManifest(skillPath) {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
+// The same hash scripts/build.js stores as contentHash, computed over what is on disk now.
+function directoryHash(root) {
+  const hash = createHash('sha256');
+  for (const file of listFiles(root)) {
+    if (file === '.dent-skill.json') continue;
+    hash.update(file);
+    hash.update('\0');
+    hash.update(readFileSync(join(root, file)));
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
 function installedState(source, destination) {
   if (!existsSync(destination)) return { status: 'missing' };
   const sourceManifest = readSkillManifest(source);
   const destinationManifest = readSkillManifest(destination);
   if (sourceManifest && destinationManifest) {
     // Provider is informational, not compared: harness dirs can alias one physical
-    // directory (symlinked setups), and contentHash already detects divergent bundles.
+    // directory (symlinked setups). The files on disk are hashed, so an edited or
+    // half-written pointer never passes as current.
     if (
       sourceManifest.package === destinationManifest.package
       && sourceManifest.version === destinationManifest.version
-      && sourceManifest.contentHash === destinationManifest.contentHash
+      && sourceManifest.contentHash === directoryHash(destination)
     ) {
       return { status: 'current', source: 'manifest', manifest: destinationManifest };
     }
@@ -1231,6 +1254,7 @@ function syncTree(source, destination) {
       writeFileSync(temporary, readFileSync(from), { mode });
       chmodSync(temporary, mode);
       renameSync(temporary, to);
+      destinationFiles.delete(`${file}.tmp`);
     }
     destinationFiles.delete(file);
   }
@@ -1252,7 +1276,7 @@ function syncTree(source, destination) {
     return paths;
   }));
   for (const directory of [...directories].sort((left, right) => right.length - left.length)) {
-    if (readdirSync(directory).length === 0) rmSync(directory);
+    if (readdirSync(directory).length === 0) rmdirSync(directory);
   }
 }
 
@@ -1284,8 +1308,17 @@ async function installOrUpdate(command, options) {
     targets = [{ ...provider, scope, harnessPath: join(root, provider.harnessDir), root }];
   } else {
     const detections = detectHarnesses(projectRoot);
-    targets = detections.length > 0 ? detections : [{ ...providerFromValue('claude-code'), scope: 'project', harnessPath: join(projectRoot, '.claude'), root: projectRoot }];
-    if (!options.yes && command === 'install') targets = await promptInstallChoice(targets);
+    if (command === 'update') {
+      // An update rewrites pointers that exist; it never adds one beside a plugin install.
+      targets = detections.filter(target => existsSync(join(installedSkillPath(target), 'SKILL.md')));
+      if (targets.length === 0) {
+        console.log('Dent skill is not installed. Run `dent install`.');
+        return;
+      }
+    } else {
+      targets = detections.length > 0 ? detections : [{ ...providerFromValue('claude-code'), scope: 'project', harnessPath: join(projectRoot, '.claude'), root: projectRoot }];
+      if (!options.yes) targets = await promptInstallChoice(targets);
+    }
   }
   let wrote = 0;
   let current = 0;
@@ -1298,76 +1331,6 @@ async function installOrUpdate(command, options) {
     console.log(`${action} for ${target.label} at ${result.destination} (v${version}).`);
   }
   if (wrote === 0 && current > 0) console.log('Nothing to do.');
-}
-
-function findInstalledSkills(projectRoot, pluginRoot) {
-  const found = new Map();
-  function addInstalledSkill(item) {
-    const realpath = realpathSync(item.skillPath);
-    const installed = found.get(realpath);
-    if (installed) {
-      if (installed.owner !== 'copy' && item.owner === 'copy') return;
-      if (!installed.labels.includes(item.label)) installed.labels.push(item.label);
-      installed.owners = new Set([...(installed.owners || [installed.owner]), ...(item.owner === 'copy' ? [] : [item.owner])]);
-      if (installed.owner === 'copy' && item.owner !== 'copy') {
-        installed.owner = item.owner;
-        installed.labels = [item.label];
-        installed.label = item.label;
-        installed.global = item.global;
-      }
-      return;
-    }
-    found.set(realpath, { ...item, realpath, labels: [item.label], owners: new Set(item.owner === 'copy' ? [] : [item.owner]) });
-  }
-  if (pluginRoot) {
-    const skillPath = join(resolve(pluginRoot), 'skills', skillName);
-    if (existsSync(join(skillPath, 'SKILL.md'))) addInstalledSkill({ label: 'claude plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'claude-plugin' });
-  }
-  const installedPlugins = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
-  if (existsSync(installedPlugins)) {
-    const plugins = JSON.parse(readFileSync(installedPlugins, 'utf8')).plugins;
-    for (const [name, installations] of Object.entries(plugins)) {
-      if (name.startsWith(`${pluginName}@`)) {
-        for (const plugin of installations) {
-          const skillPath = join(plugin.installPath, 'skills', skillName);
-          if (existsSync(join(skillPath, 'SKILL.md'))) {
-            addInstalledSkill({ label: 'claude plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'claude-plugin' });
-          }
-        }
-      }
-    }
-  }
-  const codexCache = join(homedir(), '.codex', 'plugins', 'cache');
-  if (existsSync(codexCache)) {
-    for (const marketplace of readdirSync(codexCache)) {
-      const marketplacePath = join(codexCache, marketplace, pluginName);
-      if (!statSync(marketplacePath, { throwIfNoEntry: false })?.isDirectory()) continue;
-      for (const version of readdirSync(marketplacePath)) {
-        const skillPath = join(marketplacePath, version, 'skills', skillName);
-        if (existsSync(join(skillPath, 'SKILL.md'))) addInstalledSkill({ label: 'codex plugin', skillPath, version: readInstalledVersion(skillPath), owner: 'codex-plugin' });
-      }
-    }
-  }
-  const skillLocks = [
-    { path: process.env.XDG_STATE_HOME ? join(process.env.XDG_STATE_HOME, 'skills', '.skill-lock.json') : join(homedir(), '.agents', '.skill-lock.json'), root: realpathSync(homedir()), global: true },
-    { path: join(projectRoot, 'skills-lock.json'), root: realpathSync(projectRoot), global: false },
-  ].flatMap(lock => {
-    if (!existsSync(lock.path)) return [];
-    const entry = JSON.parse(readFileSync(lock.path, 'utf8')).skills?.[skillName];
-    return entry ? [{ ...lock, entry }] : [];
-  });
-  const roots = [...new Set([projectRoot, homedir()].map(root => realpathSync(root)))];
-  for (const root of roots) {
-    for (const key of harnessOrder) {
-      const provider = providerFromValue(key);
-      const skillPath = join(root, provider.harnessDir, 'skills', skillName);
-      if (existsSync(join(skillPath, 'SKILL.md'))) {
-        const lock = skillLocks.find(item => item.root === root && (!item.global || root !== projectRoot || provider.harnessDir === '.agents'));
-        addInstalledSkill({ ...provider, key, root, skillPath, version: readInstalledVersion(skillPath), label: lock ? 'skills CLI' : provider.label, owner: lock ? 'skills-cli' : 'copy', global: lock?.global });
-      }
-    }
-  }
-  return [...found.values()];
 }
 
 function compareVersions(left, right) {
@@ -1387,128 +1350,87 @@ async function registryVersion() {
   return body.version;
 }
 
+function installedPointers(projectRoot, options) {
+  if (options.target) {
+    const provider = providerFromValue(options.provider || 'claude-code');
+    return [{ ...provider, harnessPath: resolve(options.target) }];
+  }
+  return detectHarnesses(projectRoot);
+}
+
+async function publishedVersionOrNull(onFailure) {
+  try {
+    return await registryVersion();
+  } catch {
+    if (onFailure) onFailure();
+    return null;
+  }
+}
+
+function cliBehind(publishedVersion) {
+  return Boolean(publishedVersion) && compareVersions(readPackage().version, publishedVersion) < 0;
+}
+
+function cliBehindLine(publishedVersion) {
+  return `Dent CLI v${readPackage().version} is behind v${publishedVersion}. Run: dent update`;
+}
+
+// One registry read a day, so `dent skill` can name a stale CLI without a network call per session.
+async function dailyPublishedVersion() {
+  const stamp = join(resolveConfigDir(), 'cli-check');
+  const checkedAt = statSync(stamp, { throwIfNoEntry: false })?.mtimeMs || 0;
+  if (Date.now() - checkedAt < 24 * 60 * 60 * 1000) return readFileSync(stamp, 'utf8').trim() || null;
+  const publishedVersion = await publishedVersionOrNull();
+  // An unreachable registry is stamped too, so a day of outage costs one timeout, not one per session.
+  mkdirSync(dirname(stamp), { recursive: true, mode: 0o700 });
+  writeFileSync(stamp, `${publishedVersion || ''}\n`);
+  return publishedVersion;
+}
+
 async function check(options) {
   ensureBuilt();
-  const projectRoot = findProjectRoot(options.dir || process.cwd());
-  const installed = options.target
-    ? [{ ...providerFromValue(options.provider || 'claude-code'), skillPath: join(resolve(options.target), 'skills', skillName), label: providerFromValue(options.provider || 'claude-code').label, owner: 'copy', version: readInstalledVersion(join(resolve(options.target), 'skills', skillName)), realpath: resolve(join(resolve(options.target), 'skills', skillName)), labels: [providerFromValue(options.provider || 'claude-code').label], owners: new Set() }].filter(item => existsSync(join(item.skillPath, 'SKILL.md')))
-    : findInstalledSkills(projectRoot, options['plugin-root']);
-  let publishedVersion;
-  try {
-    publishedVersion = await registryVersion();
-  } catch {
+  const publishedVersion = await publishedVersionOrNull(() => {
     console.log('Registry unreachable; compared against the local package only.');
     process.exitCode = 2;
-  }
-  const packageVersion = readPackage().version;
-  if (publishedVersion && compareVersions(packageVersion, publishedVersion) < 0) console.log(`Dent CLI v${packageVersion} is behind v${publishedVersion}. Run: npm install -g @getdent/skill@latest`);
-  if (installed.length === 0) {
+  });
+  if (cliBehind(publishedVersion)) console.log(cliBehindLine(publishedVersion));
+  const pointers = installedPointers(findProjectRoot(options.dir || process.cwd()), options).filter(target => existsSync(join(installedSkillPath(target), 'SKILL.md')));
+  if (pointers.length === 0) {
     if (!options.quiet) console.log('Dent skill is not installed. Run `dent install`.');
     return;
   }
-  for (const item of installed) {
-    const state = item.owner === 'copy'
-      ? installedState(bundleSkillPath(), item.skillPath)
-      : { status: compareVersions(item.version || '0.0.0', publishedVersion || readPackage().version) < 0 ? 'stale' : 'current', source: 'manifest', manifest: readSkillManifest(item.skillPath) };
-    const expectedVersion = item.owner !== 'copy' ? (publishedVersion || readPackage().version) : (readSkillManifest(bundleSkillPath())?.version || readPackage().version);
-    if (!options.quiet) console.log(`Found ${item.labels.join(', ')}: ${item.skillPath} (installed v${item.version || 'unknown'})`);
-    if (state.status !== 'current') {
-      const installedVersion = state.manifest?.version || item.version || 'unknown';
-      const newerVersion = publishedVersion && compareVersions(publishedVersion, expectedVersion) > 0 ? publishedVersion : expectedVersion;
-      const reason = compareVersions(installedVersion, newerVersion) < 0 ? `v${installedVersion} is behind v${newerVersion}` : `v${installedVersion} differs from the package v${newerVersion} files`;
-      console.log(`Dent skill (${item.labels.join(', ')} at ${item.realpath}) ${reason}. Run: ${updateCommandFor(item.owner, item.global)}`);
-      for (const owner of [...(item.owners || [])].filter(owner => owner !== item.owner)) {
-        console.log(`Run: ${updateCommandFor(owner, item.global)}`);
-      }
-    } else {
-      if (!options.quiet) console.log(`Dent skill is up to date by ${state.source} (v${item.version}).`);
-    }
+  for (const target of pointers) {
+    const skillPath = installedSkillPath(target);
+    const current = installedState(bundleSkillPath(), skillPath).status === 'current';
+    if (!options.quiet) console.log(`Found ${target.label}: ${skillPath} (installed v${readInstalledVersion(skillPath) || 'unknown'})`);
+    if (!current) console.log(`Dent skill pointer at ${skillPath} differs from this package. Run: dent update`);
+    else if (!options.quiet) console.log('Dent skill pointer is up to date.');
   }
 }
 
 async function update(options) {
-  const installed = findInstalledSkills(findProjectRoot(options.dir || process.cwd()), options['plugin-root']);
-  const copied = installed.filter(item => item.owner === 'copy');
-  const owners = [...new Set(installed.flatMap(item => [...(item.owners || [item.owner])]).filter(owner => owner !== 'copy'))];
-  let publishedVersion;
-  try {
-    publishedVersion = await registryVersion();
-  } catch {
-    console.log('Registry unreachable; compared against the local package only.');
-  }
-  const cliBehind = Boolean(publishedVersion) && compareVersions(readPackage().version, publishedVersion) < 0;
-  if (cliBehind && !options['skip-upgrade']) {
+  const publishedVersion = await publishedVersionOrNull(() => console.log('Registry unreachable; compared against the local package only.'));
+  if (cliBehind(publishedVersion) && !options['skip-upgrade']) {
+    const args = ['update', '--skip-upgrade'];
+    for (const name of ['dir', 'target', 'provider', 'scope']) if (options[name]) args.push(`--${name}`, options[name]);
+    if (options.force) args.push('--force');
     if (packageRoot.includes('_npx')) {
-      const args = ['--yes', '--prefer-online', '@getdent/skill@latest', 'update', '--skip-upgrade'];
-      for (const name of ['plugin-root', 'dir', 'target', 'provider', 'scope']) if (options[name]) args.push(`--${name}`, options[name]);
-      if (options.force) args.push('--force');
-      const rerun = spawnSync('npx', args, { stdio: 'inherit', timeout: 120000 });
-      if (rerun.error) {
-        console.log(`Run: npx ${args.join(' ')}`);
-        return;
-      }
+      const rerun = npmCommand('npx', ['--yes', '--prefer-online', '@getdent/skill@latest', ...args], { stdio: 'inherit', timeout: 120000 });
+      if (rerun.error) throw new Error(`Could not run the upgraded Dent CLI: ${rerun.error.message}`);
       if (rerun.status !== 0) process.exitCode = rerun.status || 1;
       return;
-    } else {
-      const installedPackage = spawnSync('npm', ['install', '-g', '@getdent/skill@latest'], { stdio: 'inherit', timeout: 300000 });
-      if (installedPackage.error) throw new Error(`Could not upgrade the Dent CLI: ${installedPackage.error.message}`);
-      if (installedPackage.status !== 0) throw new Error('Could not upgrade the Dent CLI.');
-      const args = ['update', '--skip-upgrade'];
-      for (const name of ['plugin-root', 'dir', 'target', 'provider', 'scope']) {
-        if (options[name]) args.push(`--${name}`, options[name]);
-      }
-      if (options.force) args.push('--force');
-      const globalRoot = spawnSync('npm', ['root', '-g'], { encoding: 'utf8', timeout: 30000 });
-      if (globalRoot.error || globalRoot.status !== 0) throw new Error('Could not resolve the upgraded Dent CLI.');
-      if (!globalRoot.stdout.trim()) return;
-      const rerun = spawnSync(process.execPath, [join(globalRoot.stdout.trim(), '@getdent', 'skill', 'cli', 'bin', 'dent.js'), ...args], { stdio: 'inherit', timeout: 120000 });
-      if (rerun.error) throw new Error(`Could not run dent to refresh the Dent skill: ${rerun.error.message}`);
-      if (rerun.status !== 0) throw new Error('Could not update the Dent skill after upgrading the CLI.');
-      return;
     }
+    const installedPackage = npmCommand('npm', ['install', '-g', '@getdent/skill@latest'], { stdio: 'inherit', timeout: 300000 });
+    if (installedPackage.error) throw new Error(`Could not upgrade the Dent CLI: ${installedPackage.error.message}`);
+    if (installedPackage.status !== 0) throw new Error('Could not upgrade the Dent CLI.');
+    const globalRoot = npmCommand('npm', ['root', '-g'], { encoding: 'utf8', timeout: 30000 });
+    if (globalRoot.error || globalRoot.status !== 0 || !globalRoot.stdout.trim()) throw new Error('Could not resolve the upgraded Dent CLI.');
+    const rerun = spawnSync(process.execPath, [join(globalRoot.stdout.trim(), '@getdent', 'skill', 'cli', 'bin', 'dent.js'), ...args], { stdio: 'inherit', timeout: 120000 });
+    if (rerun.error) throw new Error(`Could not run the upgraded Dent CLI: ${rerun.error.message}`);
+    if (rerun.status !== 0) throw new Error('Could not update the Dent skill after upgrading the CLI.');
+    return;
   }
-  if (installed.length === 0) {
-    await installOrUpdate('update', options);
-  } else {
-    for (const item of copied) {
-      const target = { ...item, harnessPath: dirname(dirname(item.skillPath)) };
-      const result = copySkill(target, true);
-      const version = readInstalledVersion(result.destination) || readPackage().version;
-      const action = result.status === 'written' ? 'Installed' : 'Dent skill is up to date';
-      console.log(`${action} for ${target.label} at ${result.destination} (v${version}).`);
-    }
-  }
-  for (const owner of owners) console.log(`Run: ${updateCommandFor(owner, installed.find(item => (item.owners || new Set()).has(owner))?.global)}`);
-}
-
-async function pluginPath(options) {
-  const stamp = join(resolveConfigDir(), 'plugin-refresh');
-  const checkedAt = statSync(stamp, { throwIfNoEntry: false })?.mtimeMs || 0;
-  const dayOld = Date.now() - checkedAt > 24 * 60 * 60 * 1000;
-  if (dayOld && !options.fresh) {
-    let publishedVersion;
-    try {
-      publishedVersion = await registryVersion();
-    } catch {
-      publishedVersion = undefined;
-    }
-    if (publishedVersion) {
-      mkdirSync(dirname(stamp), { recursive: true, mode: 0o700 });
-      writeFileSync(stamp, `${publishedVersion}\n`);
-      if (compareVersions(readPackage().version, publishedVersion) < 0) {
-        const rerun = spawnSync('npx', ['--yes', '--prefer-online', '@getdent/skill@latest', 'plugin-path', '--fresh'], { encoding: 'utf8', timeout: 55000 });
-        if (!rerun.error && rerun.status === 0 && rerun.stdout.trim()) return console.log(rerun.stdout.trim());
-      }
-    }
-  }
-  console.log(packageRoot);
-}
-
-function updateCommandFor(owner, global) {
-  if (owner === 'claude-plugin') return `/plugin update ${pluginName}@${marketplaceName}`;
-  if (owner === 'codex-plugin') return 'codex plugin marketplace upgrade';
-  if (owner === 'skills-cli') return global ? 'npx skills update dent -g' : 'npx skills update dent';
-  return 'dent update';
+  await installOrUpdate('update', options);
 }
 
 async function main() {
@@ -1516,7 +1438,6 @@ async function main() {
   const { positionals, options } = parseArgs(rest);
   if (command === 'help' || command === '--help' || command === '-h') return printHelp();
   if (command === '--version' || command === '-v') return console.log(readPackage().version);
-  if (command === 'plugin-path') return pluginPath(options);
   if (command === 'skill') return skill(positionals);
   if (command === 'install') return installOrUpdate('install', options);
   if (command === 'update') return update(options);

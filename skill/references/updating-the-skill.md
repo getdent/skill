@@ -9,58 +9,45 @@
 <!-- dent:web:end -->
 
 <!-- dent:cli:start -->
-## 1. Read what `dent check` printed
+## 1. Read the first line of `dent skill`
 
 - The skill text you are following came from `dent skill`, printed by the installed CLI, so the CLI version is the skill version.
-- `dent check` compares the running CLI, the installed pointer, and every plugin or manager-owned copy (Claude Code plugin, Codex plugin, skills CLI) against the published package.
-- It prints one line per stale thing and exits 0 either way.
-- A stale copied pointer prints the `dent update` line.
-- A stale CLI prints `Dent CLI v0.1.7 is behind v0.1.8. Run: npm install -g @getdent/skill@latest`.
-- A stale plugin install prints `Dent skill v0.1.7 is behind v0.1.8. Run: /plugin update dent@getdent`.
-- A Claude Code plugin install refreshes itself in the background once a day, so that line means the refresh has not landed in this session yet.
-- `Registry unreachable; compared against the local package only.` means the check fell back to the bundled package, and the local compare is then the answer.
+- `dent skill` asks npm once a day. When the CLI is behind, its first line is `Dent CLI v0.2.1 is behind v0.2.2. Run: dent update`.
+- `dent check` runs the same compare on demand and also names installed pointers that differ from the package; it exits 2 when npm is unreachable.
 
 IF `dent` is not on PATH:
+### Install the CLI once
+Run `npm install -g @getdent/skill`.
+Template:
+  ```bash
+  npm install -g @getdent/skill
+  ```
+
+IF `npm install -g` is refused:
 ### Run every Dent command through npx
 Prefix each Dent CLI command with `npx @getdent/skill@latest`.
 Template:
   ```bash
-  npx @getdent/skill@latest check
+  npx @getdent/skill@latest skill
   ```
 
-### Stop before the write when anything is stale
-Pause Dent writes, update, and start the Process again from the session step.
-Never: continue a write after `dent check` printed an update line.
+### Stop before the write when the CLI is behind
+Pause Dent writes, update, and start the Process again from `dent skill`.
+Never: continue a write after `dent skill` said the CLI is behind.
 
 ## 2. Run the update
 
-### Run `dent update` for a stale CLI or a copied pointer
-`dent update` upgrades the package when the registry has a newer version, then rewrites the pointer in every harness it finds. After it returns, run `dent skill` again and follow the fresh text.
+### Run `dent update`
+`dent update` upgrades the CLI through npm when npm has a newer version, then rewrites the pointer in every harness it finds. After it returns, run `dent skill` again and follow the fresh text.
 Template:
   ```bash
   dent update
+  dent skill
   ```
 
-IF `dent update` printed a `Run:` line:
-### Run the printed shell command yourself, relay a slash command
-`dent update` upgrades the CLI but never rewrites a skill another tool owns. It prints the owner's own update command instead: `codex plugin marketplace upgrade` for a Codex plugin, `npx skills update dent -g` for a copy the skills CLI installed. Run those yourself. `/plugin update dent@getdent` is a Claude Code slash command, so give the operator that one line and wait.
-Template:
-  Run `/plugin update dent@getdent` in your client, then tell me it is done.
-
-### Do not hand the terminal step back to the operator
-An agent with shell access runs the update itself and reports what changed.
+### Run the update yourself
+An agent with shell access runs `dent update` itself and reports what changed.
 Never: "Please run the update command and tell me when it finishes."
-
-## 3. Check again
-
-### Run `dent check` once more before writing
-Continue only when the check prints no update line.
-Template:
-  ```bash
-  dent check
-  ```
-
-Never: assume the update landed without a second check.
 <!-- dent:cli:end -->
 
 <!-- dent:web:start -->
