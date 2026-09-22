@@ -8,6 +8,16 @@ Give your AI agent hands on your [Dent](https://getdent.app) site.
 
 The installed `SKILL.md` is a pointer. The skill text ships inside the `dent` command and `dent skill` prints it, so whatever you installed can never be older than the CLI on your machine, and keeping the CLI current is the whole update.
 
+## Quick start: tell your AI
+
+Paste this into any AI that can run commands on your machine (Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf, and the rest). It does the whole setup and hands you one link to sign in with:
+
+```text
+Set up Dent for me. Run `npm install -g @getdent/skill`. If `npm` is not installed, install Node.js LTS from https://nodejs.org first and try again. Then run `dent install --yes`, then `dent login --no-open` and give me the link it prints so I can sign in and authorize in my browser. Once I say I'm signed in, run `dent skill` and follow what it prints.
+```
+
+The AI never sees a password or token: you sign in and click Authorize yourself. The rows below are the same thing per host, for people who prefer a plugin manager.
+
 ## Install
 
 Pick the row for the AI you use. Use one install method per machine; two copies of the skill show up twice.
@@ -39,16 +49,6 @@ claude.ai has no terminal, so the web variant asks you once to paste a Dent pers
 chatgpt.com in a browser can hold the skill but cannot reach your Site: ChatGPT web only calls outside APIs through a Custom GPT Action or a remote MCP server. Use the Codex app or Codex CLI rows for the full capability in ChatGPT today.
 
 If the browser cannot reach the machine the agent runs on, the agent starts `dent login --copy-code --start`, you authorize, then read it the code from the page (it cannot be copied) and it finishes with `dent login --copy-code --code <code>`.
-
-Already on an older `dent` (`@parkerlabs/dent` 0.1.7 or below)? Those versions cannot log in to current Dent and cannot upgrade themselves, and the package moved to `@getdent/skill`. Run once:
-
-```bash
-npm uninstall -g @parkerlabs/dent
-npm install -g @getdent/skill
-dent update
-```
-
-`dent update` replaces the old full skill copy that `dent install` wrote into `~/.claude/skills/dent` or `~/.agents/skills/dent` with the pointer. If you switch to the Claude Code plugin row instead, delete that copy first so the skill does not show up twice.
 
 ## Manual setup (no AI)
 
