@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { access, cp, lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -965,7 +965,8 @@ test('check discovers a Codex plugin install without copying it on update', asyn
 });
 
 test('check assigns a skills CLI lock owner without rewriting its copy', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'dent-cli-test-'));
+  // The real path, so HOME and the project root are the same string, as on a Linux runner.
+  const directory = await realpath(await mkdtemp(join(tmpdir(), 'dent-cli-test-')));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const skill = join(directory, '.agents', 'skills', 'dent');
   await mkdir(skill, { recursive: true });
@@ -976,6 +977,7 @@ test('check assigns a skills CLI lock owner without rewriting its copy', async t
   assert.equal(checked.code, 2);
   assert.match(checked.stdout, /Registry unreachable; compared against the local package only\./);
   assert.match(checked.stdout, /Found skills CLI: .*installed v0\.1\.6/);
+  assert.doesNotMatch(checked.stdout, /skills CLI, skills CLI/);
   assert.match(checked.stdout, /Run: npx skills update dent -g/);
 
   const updated = await runDent(['update', '--skip-upgrade'], { cwd: directory, configDir: join(directory, 'config'), env: { HOME: directory } });

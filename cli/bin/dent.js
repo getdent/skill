@@ -1307,7 +1307,7 @@ function findInstalledSkills(projectRoot, pluginRoot) {
     const installed = found.get(realpath);
     if (installed) {
       if (installed.owner !== 'copy' && item.owner === 'copy') return;
-      installed.labels.push(item.label);
+      if (!installed.labels.includes(item.label)) installed.labels.push(item.label);
       installed.owners = new Set([...(installed.owners || [installed.owner]), ...(item.owner === 'copy' ? [] : [item.owner])]);
       if (installed.owner === 'copy' && item.owner !== 'copy') {
         installed.owner = item.owner;
@@ -1349,14 +1349,14 @@ function findInstalledSkills(projectRoot, pluginRoot) {
     }
   }
   const skillLocks = [
-    { path: process.env.XDG_STATE_HOME ? join(process.env.XDG_STATE_HOME, 'skills', '.skill-lock.json') : join(homedir(), '.agents', '.skill-lock.json'), root: homedir(), global: true },
-    { path: join(projectRoot, 'skills-lock.json'), root: projectRoot, global: false },
+    { path: process.env.XDG_STATE_HOME ? join(process.env.XDG_STATE_HOME, 'skills', '.skill-lock.json') : join(homedir(), '.agents', '.skill-lock.json'), root: realpathSync(homedir()), global: true },
+    { path: join(projectRoot, 'skills-lock.json'), root: realpathSync(projectRoot), global: false },
   ].flatMap(lock => {
     if (!existsSync(lock.path)) return [];
     const entry = JSON.parse(readFileSync(lock.path, 'utf8')).skills?.[skillName];
     return entry ? [{ ...lock, entry }] : [];
   });
-  const roots = [projectRoot, homedir()];
+  const roots = [...new Set([projectRoot, homedir()].map(root => realpathSync(root)))];
   for (const root of roots) {
     for (const key of harnessOrder) {
       const provider = providerFromValue(key);
